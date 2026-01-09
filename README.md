@@ -1,1 +1,1 @@
-# comb-uv
+# Diskify: a Combinatorial Approach to the Generation of Disk Topology Surfaces
