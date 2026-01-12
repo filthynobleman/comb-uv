@@ -59,6 +59,8 @@ public:
     Eigen::VectorXd DijkstraDistance(int src, const Eigen::VectorXi& Tag, int Filter) const;
     std::vector<int> ConnectedComponents() const;
     std::vector<std::pair<int, int>> MinSpanTree() const;
+
+    dfy::Graph SubGraph(const std::vector<int>& Indices) const;
 };
 
 

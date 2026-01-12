@@ -13,6 +13,9 @@
 #include <dfy/graph.hpp>
 #include <dfy/mesh.hpp>
 
+#include <ostream>
+#include <fstream>
+
 
 namespace dfy
 {

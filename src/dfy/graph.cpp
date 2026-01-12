@@ -295,6 +295,38 @@ std::vector<std::pair<int, int>> dfy::Graph::MinSpanTree() const
     return MST;
 }
 
+dfy::Graph dfy::Graph::SubGraph(const std::vector<int> &Indices) const
+{
+    std::map<int, int> IdxInv;
+    for (int i = 0; i < Indices.size(); ++i)
+        IdxInv.emplace(Indices[i], i);
+    
+    std::vector<std::pair<int, int>> Edges;
+    std::vector<double> Weights;
+    Edges.reserve(NumEdges());
+    Weights.reserve(NumEdges());
+
+    for (auto it : IdxInv)
+    {
+        int iOld = it.first;
+        int iNew = it.second;
+        int nadj = NumAdjacents(iOld);
+        for (int jj = 0; jj < nadj; ++jj)
+        {
+            int jOld;
+            double w;
+            std::tie(jOld, w) = GetAdjacent(iOld, jj);
+            if (IdxInv.find(jOld) == IdxInv.end())
+                continue;
+            int jNew = IdxInv[jOld];
+            Edges.emplace_back(iNew, jNew);
+            Weights.emplace_back(w);
+        }
+    }
+
+    return dfy::Graph(Edges, Weights);
+}
+
 
 dfy::Graph dfy::MeshToGraph(const dfy::Mesh &M, M2GDist Dist)
 {

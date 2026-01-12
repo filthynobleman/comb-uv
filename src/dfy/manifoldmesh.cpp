@@ -93,7 +93,7 @@ void dfy::ManifoldMesh::InitManifoldMesh()
     std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> EdgeVec;
     EdgeVec.reserve(3 * NumTriangles());
     // This initial iteration will also fill the tri-edge adjacency
-    m_T2E.resize(NumTriangles(), 3);
+    m_T2E.setConstant(NumTriangles(), 3, -1);
     for (int i = 0; i < NumTriangles(); ++i)
     {
         std::pair<int, int> e;
@@ -172,6 +172,8 @@ void dfy::ManifoldMesh::InitManifoldMesh()
     {
         for (int j = 0; j < 3; ++j)
         {
+            if (m_T2E(i, j) == -1)
+                continue;
             if (m_E2T(m_T2E(i, j), 0) == -1)
                 m_E2T(m_T2E(i, j), 0) = i;
             else
@@ -180,7 +182,7 @@ void dfy::ManifoldMesh::InitManifoldMesh()
     }
 
     // Compute triangle-triangle adjacency
-    m_T2T.resize(NumTriangles(), 3);
+    m_T2T.setConstant(NumTriangles(), 3, -1);
     for (int i = 0; i < NumTriangles(); ++i)
     {
         for (int j = 0; j < 3; ++j)
