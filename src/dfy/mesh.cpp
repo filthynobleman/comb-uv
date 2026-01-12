@@ -13,6 +13,10 @@
 #include <igl/read_triangle_mesh.h>
 #include <igl/per_vertex_normals.h>
 #include <igl/per_face_normals.h>
+#include <igl/doublearea.h>
+#include <igl/internal_angles.h>
+#include <igl/barycenter.h>
+
 
 
 dfy::Mesh::Mesh(const Eigen::MatrixXd &Verts, 
@@ -20,21 +24,22 @@ dfy::Mesh::Mesh(const Eigen::MatrixXd &Verts,
 {
     m_V = Verts;
     m_F = Tris;
-    igl::per_vertex_normals(m_V, m_F, m_NV);
-    igl::per_face_normals(m_V, m_F, m_NF);
+    InitMesh();
 }
 
 dfy::Mesh::Mesh(const std::string &Filename)
 {
     igl::read_triangle_mesh(Filename, m_V, m_F);
-    igl::per_vertex_normals(m_V, m_F, m_NV);
-    igl::per_face_normals(m_V, m_F, m_NF);
+    InitMesh();
 }
 
 dfy::Mesh::Mesh(const dfy::Mesh &M)
 {
     m_V = M.m_V;
     m_F = M.m_F;
+    m_Areas = M.m_Areas;
+    m_Angles = M.m_Angles;
+    m_Barycs = M.m_Barycs;
     m_NV = M.m_NV;
     m_NF = M.m_NF;
 }
@@ -43,6 +48,9 @@ dfy::Mesh::Mesh(dfy::Mesh &&M)
 {
     m_V = std::move(M.m_V);
     m_F = std::move(M.m_F);
+    m_Areas = std::move(M.m_Areas);
+    m_Angles = std::move(M.m_Angles);
+    m_Barycs = std::move(M.m_Barycs);
     m_NV = std::move(M.m_NV);
     m_NF = std::move(M.m_NF);
 }
@@ -51,6 +59,9 @@ dfy::Mesh dfy::Mesh::operator=(const dfy::Mesh &M)
 {
     m_V = M.m_V;
     m_F = M.m_F;
+    m_Areas = M.m_Areas;
+    m_Angles = M.m_Angles;
+    m_Barycs = M.m_Barycs;
     m_NV = M.m_NV;
     m_NF = M.m_NF;
     return *this;
@@ -60,6 +71,9 @@ dfy::Mesh dfy::Mesh::operator=(dfy::Mesh &&M)
 {
     m_V = std::move(M.m_V);
     m_F = std::move(M.m_F);
+    m_Areas = std::move(M.m_Areas);
+    m_Angles = std::move(M.m_Angles);
+    m_Barycs = std::move(M.m_Barycs);
     m_NV = std::move(M.m_NV);
     m_NF = std::move(M.m_NF);
     return *this;
@@ -67,6 +81,15 @@ dfy::Mesh dfy::Mesh::operator=(dfy::Mesh &&M)
 
 dfy::Mesh::~Mesh() { }
 
+void dfy::Mesh::InitMesh()
+{
+    igl::per_vertex_normals(m_V, m_F, m_NV);
+    igl::per_face_normals(m_V, m_F, m_NF);
+    igl::doublearea(m_V, m_F, m_Areas);
+    m_Areas = 0.5 * m_Areas.array();
+    igl::internal_angles(m_V, m_F, m_Angles);
+    igl::barycenter(m_V, m_F, m_Barycs);
+}
 
 int dfy::Mesh::NumVertices() const { return m_V.rows(); }
 int dfy::Mesh::NumTriangles() const { return m_F.rows(); }
@@ -74,6 +97,8 @@ int dfy::Mesh::NumTriangles() const { return m_F.rows(); }
 
 const Eigen::MatrixXd& dfy::Mesh::Vertices() const { return m_V; }
 const Eigen::MatrixXi& dfy::Mesh::Triangles() const { return m_F; }
+const Eigen::MatrixXd &dfy::Mesh::VertNormals() const { return m_NV; }
+const Eigen::MatrixXd &dfy::Mesh::FaceNormals() const { return m_NF; }
 
 const Eigen::MatrixXd &dfy::Mesh::Normals(dfy::NormalType Type) const
 {
@@ -89,6 +114,10 @@ const Eigen::MatrixXd &dfy::Mesh::Normals(dfy::NormalType Type) const
         throw std::runtime_error("Given unsupported normal type.");
     }
 }
+
+const Eigen::VectorXd &dfy::Mesh::FaceAreas() const { return m_Areas; }
+const Eigen::MatrixXd &dfy::Mesh::FaceAngles() const { return m_Angles; }
+const Eigen::MatrixXd &dfy::Mesh::FaceBarycs() const { return m_Barycs; }
 
 dfy::Mesh dfy::Mesh::SubMesh(const int *const Indices, int nIndices, 
                              dfy::SubMeshAccessType AccType, 
