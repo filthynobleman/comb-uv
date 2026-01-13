@@ -63,8 +63,6 @@ bool dfy::Segmentation::IsAllDisks() const
     return true;
 }
 
-#include <iostream>
-
 void dfy::Segmentation::MakeAllDisks(int SubSamples)
 {
     bool Changes = true;
@@ -78,8 +76,6 @@ void dfy::Segmentation::MakeAllDisks(int SubSamples)
             const auto& r = GetRegion(rid);
             if (r.IsDisk())
                 continue;
-            std::cout << rid << ": " << r.EulerCharacteristic() << std::endl;
-            std::cout << "    " << r.NumVertices() << ", " << r.NumEdges() << ", " << r.NumFaces() << std::endl;
             Changes = true;
             
             std::vector<int> RFaces;

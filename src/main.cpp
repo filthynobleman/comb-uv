@@ -16,8 +16,8 @@ int main(int argc, const char* const argv[])
 {
     dfy::ManifoldMesh M(argv[1]);
     std::cout << "Loaded mesh " << argv[1] << std::endl;
-    dfy::Graph G = dfy::DualMeshToGraph(M);
-    std::cout << "Converted to graph" << std::endl;
+    dfy::Graph G = dfy::DualMeshToGraph(M, dfy::DualCurvatureDistance);
+    std::cout << "Converted to graph (" << G.NumEdges() / 2 << " edges)" << std::endl;
     dfy::Sampler Smpl(G);
     while (Smpl.NumSamples() < 10)
         Smpl.AddSample();

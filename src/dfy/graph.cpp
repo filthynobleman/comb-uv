@@ -156,9 +156,10 @@ void dfy::Graph::DijkstraDistance(int src, Eigen::VectorXd& Dists) const
     Q.emplace(0.0, src);
     while (!Q.empty())
     {
-        int i;
-        double wi;
-        std::tie(wi, i) = Q.top();
+        int i = Q.top().second;
+        double wi = Dists[i];
+        // std::tie(wi, i) = Q.top();
+
         Q.pop();
         
         int Degree = NumAdjacents(i);
@@ -377,21 +378,30 @@ dfy::Graph dfy::DualMeshToGraph(const dfy::ManifoldMesh &M, DM2GDist Dist)
 
         e.first = i;
         e.second = M.TriTriAdj()(i, 0);
-        if (e.first > e.second)
-            std::swap(e.first, e.second);
-        Edges.emplace_back(e);
+        if (e.second >= 0)
+        {
+            if (e.first > e.second)
+                std::swap(e.first, e.second);
+            Edges.emplace_back(e);
+        }
 
         e.first = i;
         e.second = M.TriTriAdj()(i, 1);
-        if (e.first > e.second)
-            std::swap(e.first, e.second);
-        Edges.emplace_back(e);
+        if (e.second >= 0)
+        {
+            if (e.first > e.second)
+                std::swap(e.first, e.second);
+            Edges.emplace_back(e);
+        }
 
         e.first = i;
         e.second = M.TriTriAdj()(i, 2);
-        if (e.first > e.second)
-            std::swap(e.first, e.second);
-        Edges.emplace_back(e);
+        if (e.second >= 0)
+        {
+            if (e.first > e.second)
+                std::swap(e.first, e.second);
+            Edges.emplace_back(e);
+        }
     }
 
     std::sort(Edges.begin(), Edges.end());
@@ -423,7 +433,9 @@ double dfy::CurvatureDistance(const dfy::Mesh &M, int i, int j)
 
 double dfy::DualCurvatureDistance(const dfy::ManifoldMesh &M, int i, int j)
 {
-    return std::acos(M.FaceNormals().row(i).dot(M.FaceNormals().row(j)));
+    double d = M.FaceNormals().row(i).dot(M.FaceNormals().row(j));
+    d = std::min(1.0, std::max(-1.0, d));
+    return std::acos(d);
 }
 
 double dfy::GeodesicDistance(const dfy::ManifoldMesh &M, int i, int j)
@@ -466,4 +478,14 @@ double dfy::GeodesicDistance(const dfy::ManifoldMesh &M, int i, int j)
     double actheta = std::acos(ac.dot(aa));
     // Use cosine formula
     return std::sqrt(ablen * ablen + aclen * aclen - 2 * ablen * aclen * std::cos(abtheta + actheta));
+}
+
+double dfy::ConstantDistance(const dfy::Mesh &, int i, int j)
+{
+    return 1.0;
+}
+
+double dfy::DualConstantDistance(const dfy::ManifoldMesh &, int i, int j)
+{
+    return 1.0;
 }

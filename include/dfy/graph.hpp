@@ -73,6 +73,8 @@ double DualEuclideanDistance(const dfy::ManifoldMesh& M, int i, int j);
 double GeodesicDistance(const dfy::ManifoldMesh& M, int i, int j);
 double CurvatureDistance(const dfy::Mesh& M, int i, int j);
 double DualCurvatureDistance(const dfy::ManifoldMesh& M, int i, int j);
+double ConstantDistance(const dfy::Mesh&, int i, int j);
+double DualConstantDistance(const dfy::ManifoldMesh&, int i, int j);
 
 
 dfy::Graph MeshToGraph(const dfy::Mesh& M,

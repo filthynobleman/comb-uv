@@ -137,7 +137,7 @@ void dfy::ManifoldMesh::InitManifoldMesh()
     std::sort(EdgeVec.begin(), EdgeVec.end());
     int ELen = 0;
     std::pair<int, int> eCur = EdgeVec[0].first;
-    for (int i = 1; i < EdgeVec.size(); ++i)
+    for (int i = 0; i < EdgeVec.size(); ++i)
     {
         std::pair<int, int> e;
         std::pair<int, int> data;
@@ -187,9 +187,12 @@ void dfy::ManifoldMesh::InitManifoldMesh()
     {
         for (int j = 0; j < 3; ++j)
         {
-            int t = m_E2T(m_T2E(i, j), 0);
+            int e = m_T2E(i, j);
+            if (e == -1)
+                continue;
+            int t = m_E2T(e, 0);
             if (t == i)
-                m_E2T(m_T2E(i, j), 1);
+                t = m_E2T(e, 1);
             m_T2T(i, j) = t;
         }
     }
