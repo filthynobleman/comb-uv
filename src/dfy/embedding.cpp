@@ -79,6 +79,8 @@ void Circle2Square(Eigen::MatrixXd& P)
         int j1 = (j0 + 1) % 4;
         int c0 = CornerIdx[j0];
         int c1 = CornerIdx[j1];
+        if (c0 == c1)
+            continue;
         for (int i = (c0 + 1) % n; i != c1; i = (i + 1) % n)
         {
             double t = (Theta[i] - Theta[c0]) / (Theta[c1] - Theta[c0]);
@@ -124,6 +126,8 @@ void Circle2Tri(Eigen::MatrixXd& P)
         int j1 = (j0 + 1) % 3;
         int c0 = CornerIdx[j0];
         int c1 = CornerIdx[j1];
+        if (c0 == c1)
+            continue;
         for (int i = (c0 + 1) % n; i != c1; i = (i + 1) % n)
         {
             double t = (Theta[i] - Theta[c0]) / (Theta[c1] - Theta[c0]);
@@ -172,6 +176,8 @@ void Circle2Hex(Eigen::MatrixXd& P)
         int j1 = (j0 + 1) % 6;
         int c0 = CornerIdx[j0];
         int c1 = CornerIdx[j1];
+        if (c0 == c1)
+            continue;
         for (int i = (c0 + 1) % n; i != c1; i = (i + 1) % n)
         {
             double t = (Theta[i] - Theta[c0]) / (Theta[c1] - Theta[c0]);
