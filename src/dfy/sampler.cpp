@@ -48,6 +48,22 @@ const std::vector<int> &dfy::Sampler::GetSamples() const { return m_Samples; }
 int dfy::Sampler::FarthestVertex() const { return (int)(m_HDists->FindMin().second); }
 void dfy::Sampler::AddSample() { AddSample(FarthestVertex()); }
 
+void dfy::Sampler::AddSamples(int n)
+{
+    n += NumSamples();
+    while (NumSamples() < n)
+        AddSample();
+}
+
+void dfy::Sampler::AddSamples(const std::vector<int> &Samples)
+{
+    std::vector<int> S = Samples;
+    std::sort(S.begin(), S.end());
+    auto SEnd = std::unique(S.begin(), S.end());
+    for (auto it = S.begin(); it != SEnd; it++)
+        AddSample(*it);
+}
+
 void dfy::Sampler::AddSample(int NewSample)
 {
     std::priority_queue<std::pair<double, int>,

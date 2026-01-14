@@ -10,6 +10,7 @@
 #include <dfy/io.hpp>
 #include <dfy/segmentation.hpp>
 #include <dfy/sampler.hpp>
+#include <dfy/tutte.hpp>
 #include <iostream>
 
 int main(int argc, const char* const argv[])
@@ -19,8 +20,7 @@ int main(int argc, const char* const argv[])
     dfy::Graph G = dfy::DualMeshToGraph(M, dfy::DualCurvatureDistance);
     std::cout << "Converted to graph (" << G.NumEdges() / 2 << " edges)" << std::endl;
     dfy::Sampler Smpl(G);
-    while (Smpl.NumSamples() < 10)
-        Smpl.AddSample();
+    Smpl.AddSamples(5);
     std::cout << "Voronoi computed" << std::endl;
     std::vector<int> VParts(Smpl.GetPartitions().data(), 
                             Smpl.GetPartitions().data() + M.NumTriangles());
@@ -34,6 +34,28 @@ int main(int argc, const char* const argv[])
                             Seg.GetTriParts().data() + M.NumTriangles());
     dfy::ExportList("./disks.txt", DParts);
     std::cout << "Disks exported" << std::endl;
+    std::vector<int> CutEdges;
+    Seg.CutToDisk(CutEdges);
+    std::cout << "Cut to disk computed" << std::endl;
+    dfy::ExportPointCloud("./edges.obj", M.EdgeCenters()(CutEdges, Eigen::all).eval());
+    dfy::Mesh DM = M.CutEdges(CutEdges);
+    std::cout << "Cut executed" << std::endl;
+    dfy::ExportMesh("./cut.obj", DM);
+    std::cout << "Cut exported" << std::endl;
+    dfy::TutteEmbedding Emb(DM);
+    Emb.MapBoundary(dfy::BoundaryMap::SQUARE);
+    if (!Emb.Compute())
+    {
+        std::cerr << "Something went wrong" << std::endl;
+        return EXIT_FAILURE;
+    }
+    std::cout << "Embedding computed" << std::endl;
+    if (!dfy::ExportMesh("./unwrapped.obj", M, Emb.UV(), DM.Triangles()))
+    {
+        std::cerr << "Something went wrong" << std::endl;
+        return EXIT_FAILURE;
+    }
+    std::cout << "Mesh exported" << std::endl;
 
-    return 0;
+    return EXIT_SUCCESS;
 }

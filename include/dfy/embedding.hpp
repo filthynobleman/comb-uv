@@ -46,7 +46,7 @@ public:
     ~Embedding();
     
     const std::vector<int>& GetBoundaryLoop() const;
-    const Eigen::MatrixXd& GetUV() const;
+    const Eigen::MatrixXd& UV() const;
 
     void MapBoundary(dfy::BoundaryMap BMap = dfy::BoundaryMap::CIRCLE);
     virtual bool Compute() = 0;

@@ -85,6 +85,11 @@ bool dfy::Region::IsDisk() const
     return EulerCharacteristic() == 1;
 }
 
+bool dfy::Region::IsEmpty() const
+{
+    return (NumVertices() + NumEdges() + NumFaces()) == 0;
+}
+
 void dfy::Region::AddVertex(int VertID) { m_Verts.insert(VertID); }
 void dfy::Region::AddEdge(int EdgeID) { m_Edges.insert(EdgeID); }
 void dfy::Region::AddFace(int FaceID) { m_Faces.insert(FaceID); }

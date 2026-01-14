@@ -10,12 +10,59 @@
 #include <dfy/io.hpp>
 
 #include <igl/write_triangle_mesh.h>
+#include <igl/writeOBJ.h>
 
 
 bool dfy::ExportMesh(const std::string &Filename, 
                      const dfy::Mesh &M)
 {
     return igl::write_triangle_mesh(Filename, M.Vertices(), M.Triangles());
+}
+
+bool dfy::ExportMesh(const std::string &Filename, 
+                     const dfy::Mesh &M, 
+                     const Eigen::MatrixXd &UV, 
+                     const Eigen::MatrixXi &TUV,
+                     bool Smooth)
+{
+    if (Smooth)
+        return igl::writeOBJ(Filename, 
+                             M.Vertices(), M.Triangles(), 
+                             M.VertNormals(), M.Triangles(), 
+                             UV, TUV);
+    else
+    {
+        int NTris = M.NumTriangles();
+        Eigen::MatrixXi FN = Eigen::VectorXi::LinSpaced(NTris, 0, NTris - 1).replicate(1, 3);
+        return igl::writeOBJ(Filename, 
+                             M.Vertices(), M.Triangles(), 
+                             M.FaceNormals(), FN, 
+                             UV, TUV);
+    }
+}
+
+bool dfy::ExportPointCloud(const std::string &Filename, 
+                           const Eigen::MatrixXd &Points)
+{
+    std::ofstream Stream;
+    Stream.open(Filename, std::ios::out);
+    if (!Stream.is_open())
+        return false;
+
+    Stream << "o " << Filename.substr(0, Filename.rfind('.')) << '\n';
+
+    for (int i = 0; i < Points.rows(); ++i)
+    {
+        Stream << "v ";
+        for (int j = 0; j < Points.cols(); ++j)
+            Stream << Points(i, j) << ' ';
+        for (int j = Points.cols(); j < 3; ++j)
+            Stream << 0 << ' ';
+        Stream << '\n';
+    }
+
+    Stream.close();
+    return true;
 }
 
 

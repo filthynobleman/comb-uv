@@ -11,6 +11,7 @@
 
 #include <utility>
 #include <functional>
+#include <cassert>
 
 #include <Eigen/Eigen>
 

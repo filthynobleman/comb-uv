@@ -17,6 +17,11 @@ add_library(DFY STATIC  "${CMAKE_SOURCE_DIR}/src/dfy/mesh.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/sampler.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/region.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/segmentation.cpp"
+                        "${CMAKE_SOURCE_DIR}/src/dfy/embedding.cpp"
+                        "${CMAKE_SOURCE_DIR}/src/dfy/tutte.cpp"
+                        "${CMAKE_SOURCE_DIR}/src/dfy/harmonic.cpp"
+                        "${CMAKE_SOURCE_DIR}/src/dfy/arap.cpp"
+                        "${CMAKE_SOURCE_DIR}/src/dfy/conformal.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/minheap.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/io.cpp")
 set_target_properties(DFY PROPERTIES CXX_STANDARD 17)

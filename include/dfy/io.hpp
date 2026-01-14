@@ -23,6 +23,15 @@ namespace dfy
 bool ExportMesh(const std::string& Filename,
                 const dfy::Mesh& M);
 
+bool ExportMesh(const std::string& Filename,
+                const dfy::Mesh& M,
+                const Eigen::MatrixXd& UV,
+                const Eigen::MatrixXi& TUV,
+                bool Smooth = true);
+
+bool ExportPointCloud(const std::string& Filename,
+                      const Eigen::MatrixXd& Points);
+
 bool ExportGraph(const std::string& Filename,
                  const dfy::Graph& G,
                  const Eigen::MatrixXd& V);

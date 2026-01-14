@@ -54,6 +54,10 @@ public:
     const Eigen::MatrixXi& EdgeTriAdj() const;
     const Eigen::MatrixXi& TriEdgeAdj() const;
     const Eigen::MatrixXi& TriTriAdj() const;
+
+    dfy::Mesh CutEdges(const std::vector<int>& EdgeVec) const;
+    dfy::Mesh CutEdges(const std::vector<bool>& EdgeFlags) const;
+    dfy::Mesh CutEdges(const Eigen::VectorXi& EdgeFlags) const;
 };
 
 

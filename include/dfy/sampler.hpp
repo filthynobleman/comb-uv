@@ -47,6 +47,8 @@ public:
     int FarthestVertex() const;
     void AddSample();
     void AddSample(int NewSample);
+    void AddSamples(int n);
+    void AddSamples(const std::vector<int>& Samples);
 };
 
 

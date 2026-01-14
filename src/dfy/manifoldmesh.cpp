@@ -10,6 +10,8 @@
 #include <dfy/manifoldmesh.hpp>
 #include <dfy/utils.hpp>
 
+#include <igl/cut_mesh.h>
+
 
 dfy::ManifoldMesh::ManifoldMesh(const Eigen::MatrixXd& Verts,
                                 const Eigen::MatrixXi& Tris)
@@ -83,6 +85,38 @@ Eigen::MatrixXd dfy::ManifoldMesh::EdgeCenters() const
     return EC;
 }
 
+dfy::Mesh dfy::ManifoldMesh::CutEdges(const std::vector<int> &EdgeVec) const
+{
+    std::vector<bool> BFlags;
+    BFlags.resize(NumEdges(), false);
+    for (int e : EdgeVec)
+        BFlags[e] = true;
+    return CutEdges(BFlags);
+}
+
+dfy::Mesh dfy::ManifoldMesh::CutEdges(const Eigen::VectorXi &EdgeFlags) const
+{
+    std::vector<bool> BFlags;
+    BFlags.reserve(NumEdges());
+    for (int i = 0; i < NumEdges(); ++i)
+        BFlags.emplace_back(EdgeFlags[i] > 0);
+    return CutEdges(BFlags);
+}
+
+dfy::Mesh dfy::ManifoldMesh::CutEdges(const std::vector<bool> &EdgeFlags) const
+{
+    Eigen::MatrixXi TriFlags;
+    TriFlags.setZero(NumTriangles(), 3);
+    for (int i = 0; i < NumTriangles(); ++i)
+    {
+        for (int j = 0; j < 3; ++j)
+            TriFlags(i, (j + 1) % 3) = EdgeFlags[TriEdgeAdj()(i, j)];
+    }
+    Eigen::MatrixXd VNew;
+    Eigen::MatrixXi FNew;
+    igl::cut_mesh(Vertices(), Triangles(), TriFlags, VNew, FNew);
+    return dfy::Mesh(VNew, FNew);
+}
 
 
 void dfy::ManifoldMesh::InitManifoldMesh()
@@ -165,6 +199,7 @@ void dfy::ManifoldMesh::InitManifoldMesh()
         m_E(i, 0) = EdgeVec[i].first.first;
         m_E(i, 1) = EdgeVec[i].first.second;
     }
+    m_EL = (Vertices()(m_E(Eigen::all, 0), Eigen::all) - Vertices()(m_E(Eigen::all, 1), Eigen::all)).rowwise().norm();
 
     // Compute edge-triangle adjacency
     m_E2T.setConstant(NumEdges(), 2, -1);

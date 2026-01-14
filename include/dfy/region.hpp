@@ -42,6 +42,7 @@ public:
     int EulerCharacteristic() const;
 
     bool IsDisk() const;
+    bool IsEmpty() const;
 
     void AddVertex(int VertID);
     void AddEdge(int EdgeID);
