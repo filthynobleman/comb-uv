@@ -11,6 +11,7 @@
 #include <dfy/segmentation.hpp>
 #include <dfy/sampler.hpp>
 #include <dfy/tutte.hpp>
+#include <dfy/gimage.hpp>
 #include <iostream>
 
 int main(int argc, const char* const argv[])
@@ -56,6 +57,12 @@ int main(int argc, const char* const argv[])
         return EXIT_FAILURE;
     }
     std::cout << "Mesh exported" << std::endl;
+    dfy::GImage Img(M, 256);
+    std::cout << "Initialized geometry image" << std::endl;
+    Img.Compute(Emb.UV(), DM.Triangles());
+    std::cout << "Computed geometry image" << std::endl;
+    dfy::ExportGImage("./gimage.png", Img);
+    std::cout << "Exported geometry image" << std::endl;
 
     return EXIT_SUCCESS;
 }

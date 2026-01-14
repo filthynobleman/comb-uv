@@ -4,3 +4,6 @@
 [submodule "ext/libigl"]
 	path = ext/libigl
 	url = https://github.com/libigl/libigl.git
+[submodule "ext/stb"]
+	path = ext/stb
+	url = https://github.com/nothings/stb.git

@@ -12,6 +12,7 @@
 #include <dfy/utils.hpp>
 #include <dfy/graph.hpp>
 #include <dfy/mesh.hpp>
+#include <dfy/gimage.hpp>
 
 #include <ostream>
 #include <fstream>
@@ -35,6 +36,9 @@ bool ExportPointCloud(const std::string& Filename,
 bool ExportGraph(const std::string& Filename,
                  const dfy::Graph& G,
                  const Eigen::MatrixXd& V);
+
+bool ExportGImage(const std::string& Filename,
+                  const dfy::GImage& Img);
 
 template<typename T>
 bool ExportList(const std::string& Filename,

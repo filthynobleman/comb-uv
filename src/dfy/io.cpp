@@ -12,6 +12,8 @@
 #include <igl/write_triangle_mesh.h>
 #include <igl/writeOBJ.h>
 
+#include <stb_image_write.h>
+
 
 bool dfy::ExportMesh(const std::string &Filename, 
                      const dfy::Mesh &M)
@@ -94,4 +96,30 @@ bool dfy::ExportGraph(const std::string &Filename,
 
     Stream.close();
     return true;
+}
+
+bool dfy::ExportGImage(const std::string &Filename, 
+                       const dfy::GImage &Img)
+{
+    size_t Stride = Img.GetWidth() * 3 * sizeof(unsigned char);
+    size_t BufSize = Stride * Img.GetHeight();
+    unsigned char* imgdata = (unsigned char*)std::malloc(BufSize);
+    if (imgdata == nullptr)
+        return false;
+    
+    for (int j = 0; j < Img.GetHeight(); ++j)
+    {
+        for (int i = 0; i < Img.GetWidth(); ++i)
+        {
+            size_t PIdx = (j * Img.GetWidth() + i) * 3;
+            Img.GetPixel(i, j, imgdata[PIdx], imgdata[PIdx + 1], imgdata[PIdx + 2]);
+        }
+    }
+
+    int Status = stbi_write_png(Filename.c_str(),
+                                Img.GetWidth(), Img.GetHeight(), 3,
+                                imgdata, Stride);
+
+    delete imgdata;
+    return Status != 0;
 }
