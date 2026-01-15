@@ -124,6 +124,12 @@ dfy::Graph dfy::Segmentation::DualGraph() const
 
 void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut)
 {
+    CutToDisk(EdgeCut, m_Mesh.EdgeLengths());
+}
+
+void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut,
+                                  const Eigen::VectorXd& EdgeWeights)
+{
     EdgeCut.clear();
 
     std::vector<std::pair<int, int>> RegEdges;
@@ -132,7 +138,7 @@ void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut)
     Weights.reserve(6 * NumRegions());
 
     // Compute the length of the mesh edges
-    const Eigen::VectorXd& ELens = m_Mesh.EdgeLengths();
+    const Eigen::VectorXd& ELens = EdgeWeights;
     // std::cout << ELens.rows() << std::endl;
 
     // Compute the adjacency graph

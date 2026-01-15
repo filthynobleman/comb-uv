@@ -88,6 +88,9 @@ void dfy::GImage::Compute(const Eigen::MatrixXd &UV,
     for (int i = 0; i < 3; ++i)
         RGB.col(i) = RGB.col(i).array() - RGB.col(i).minCoeff();
     RGB /= RGB.maxCoeff();
+    // Check each pixel has been set
+    std::vector<bool> PixSet;
+    PixSet.resize(GetWidth() * GetHeight(), false);
     for (int t = 0; t < TUV.rows(); ++t)
     {
         // Get triangle
@@ -100,9 +103,6 @@ void dfy::GImage::Compute(const Eigen::MatrixXd &UV,
         BBL[1] = std::floor(dBBL[1] * GetHeight());
         BTR[0] = std::ceil(dBTR[0] * GetWidth());
         BTR[1] = std::ceil(dBTR[1] * GetHeight());
-        // Get triangle's coordinate in pixel space
-        // Tri.col(0) = Tri.col(0).array() * GetWidth();
-        // Tri.col(1) = Tri.col(1).array() * GetHeight();
         
         // Iterate over the pixels inside the bounding box
         for (int j = BBL.y(); j < BTR.y(); ++j)
@@ -110,29 +110,62 @@ void dfy::GImage::Compute(const Eigen::MatrixXd &UV,
             for (int i = BBL.x(); i < BTR.x(); ++i)
             {
                 // Get the pixel coordinates
-                // Eigen::Vector2d ij{ i, j };
                 Eigen::RowVector2d ij{ (i + 1e-6) / (GetWidth() - (1 - 2e-6)), (j + 1e-6) / (GetHeight() - (1 - 2e-6)) };
                 Eigen::RowVector3d Lambda;
                 igl::barycentric_coordinates(ij, Tri.row(0), Tri.row(1), Tri.row(2), Lambda);
                 if ((Lambda.array() > -1e-6).all())
                 {
                     Eigen::Matrix3d T3D = RGB(m_Mesh.Triangles()(t, Eigen::all), Eigen::all);
-                    m_Data[j * GetWidth() + i] = T3D.transpose() * Lambda.transpose();
+                    m_Data[j * GetWidth() + i] = Lambda * T3D;
+                    PixSet[j * GetWidth() + i] = true;
                 }
-                // // Get barycentric coordinates of pixel
-                // Eigen::Matrix2d T;
-                // T.row(0) = Tri.row(0) - Tri.row(2);
-                // T.row(1) = Tri.row(1) - Tri.row(2);
-                // ij = (T.inverse() * (ij - Tri.row(2).transpose())).eval();
-                // // If outside, ignore
-                // // if (ij[0] < 0 || ij[1] < 0 || ij.sum() > 1)
-                // //     continue;
-                // // m_Data[j * GetWidth() + i].setOnes();
-                // // Get the 3D coordinates using barycentric interpolation inside the triangle
-                // m_Data[j * GetWidth() + i] = ij[0] * m_Mesh.Vertices()(m_Mesh.Triangles()(i, 0), Eigen::all);
-                // m_Data[j * GetWidth() + i] += ij[1] * m_Mesh.Vertices()(m_Mesh.Triangles()(i, 1), Eigen::all);
-                // m_Data[j * GetWidth() + i] += (1.0 - ij.sum()) * m_Mesh.Vertices()(m_Mesh.Triangles()(i, 2), Eigen::all);
             }
+        }
+    }
+
+    // Fill unset pixels with closest triangle
+    for (int j = 0; j < GetHeight(); ++j)
+    {
+        for (int i = 0; i < GetWidth(); ++i)
+        {
+            if (PixSet[j * GetWidth() + i])
+                continue;
+
+            // Get the pixel coordinates
+            Eigen::RowVector2d ij{ (i + 1e-6) / (GetWidth() - (1 - 2e-6)), 
+                                   (j + 1e-6) / (GetHeight() - (1 - 2e-6)) };
+            
+            // Find closest triangle
+            int Closest = -1;
+            double Error = std::numeric_limits<double>::infinity();
+            for (int t = 0; t < TUV.rows(); ++t)
+            {
+                // Get triangle
+                Eigen::Matrix<double, 3, 2> Tri = UV(TUV(t, Eigen::all).transpose(), Eigen::all);
+                // Get barycentric coords
+                Eigen::RowVector3d Lambda;
+                igl::barycentric_coordinates(ij, Tri.row(0), Tri.row(1), Tri.row(2), Lambda);
+                Lambda = Lambda.cwiseMax(0);
+                Lambda /= Lambda.sum();
+                double err = (ij - Lambda * Tri).eval().squaredNorm();
+                if (err < Error)
+                {
+                    Error = err;
+                    Closest = t;
+                }
+            }
+
+            // Apply closest triangle
+            int t = Closest;
+            // Get triangle
+            Eigen::Matrix<double, 3, 2> Tri = UV(TUV(t, Eigen::all).transpose(), Eigen::all);
+            // Get barycentric coords
+            Eigen::RowVector3d Lambda;
+            igl::barycentric_coordinates(ij, Tri.row(0), Tri.row(1), Tri.row(2), Lambda);
+            Lambda = Lambda.cwiseMax(0);
+            Lambda /= Lambda.sum();
+            Eigen::Matrix3d T3D = RGB(m_Mesh.Triangles()(t, Eigen::all), Eigen::all);
+            m_Data[j * GetWidth() + i] = Lambda * T3D;
         }
     }
 }

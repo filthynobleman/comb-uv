@@ -42,6 +42,8 @@ public:
     bool IsAllDisks() const;
 
     void MakeAllDisks(int SubSamples);
+    void CutToDisk(std::vector<int>& EdgeCuts,
+                   const Eigen::VectorXd& EdgeWeights);
     void CutToDisk(std::vector<int>& EdgeCut);
 
     dfy::Graph DualGraph() const;

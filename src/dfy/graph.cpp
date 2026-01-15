@@ -426,16 +426,20 @@ double dfy::DualEuclideanDistance(const dfy::ManifoldMesh &M, int i, int j)
     return (M.FaceBarycs().row(i) - M.FaceBarycs().row(j)).norm();
 }
 
-double dfy::CurvatureDistance(const dfy::Mesh &M, int i, int j)
+double dfy::AngularDistance(const dfy::Mesh &M, int i, int j)
 {
-    return std::acos(M.VertNormals().row(i).dot(M.VertNormals().row(j)));
-}
-
-double dfy::DualCurvatureDistance(const dfy::ManifoldMesh &M, int i, int j)
-{
-    double d = M.FaceNormals().row(i).dot(M.FaceNormals().row(j));
+    double d = std::acos(M.VertNormals().row(i).dot(M.VertNormals().row(j)));
+    // return std::min(2.0, std::max(0.0, 1 - d));
     d = std::min(1.0, std::max(-1.0, d));
     return std::acos(d);
+}
+
+double dfy::DualAngularDistance(const dfy::ManifoldMesh &M, int i, int j)
+{
+    double d = M.FaceNormals().row(i).dot(M.FaceNormals().row(j));
+    return std::min(2.0, std::max(0.0, 1 - d));
+    // d = std::min(1.0, std::max(-1.0, d));
+    // return std::acos(d);
 }
 
 double dfy::GeodesicDistance(const dfy::ManifoldMesh &M, int i, int j)

@@ -16,6 +16,7 @@ include_directories("${CMAKE_SOURCE_DIR}/include")
 # Project binaries
 add_library(DFY STATIC  "${CMAKE_SOURCE_DIR}/src/dfy/mesh.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/manifoldmesh.cpp"
+                        "${CMAKE_SOURCE_DIR}/src/dfy/quadmesh.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/graph.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/sampler.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/region.cpp"
@@ -26,6 +27,7 @@ add_library(DFY STATIC  "${CMAKE_SOURCE_DIR}/src/dfy/mesh.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/arap.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/conformal.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/gimage.cpp"
+                        "${CMAKE_SOURCE_DIR}/src/dfy/imgsampler.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/minheap.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/io.cpp")
 target_link_libraries(DFY STB)

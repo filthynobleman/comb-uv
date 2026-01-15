@@ -71,8 +71,8 @@ typedef double (*DM2GDist)(const dfy::ManifoldMesh&, int, int);
 double EuclideanDistance(const dfy::Mesh& M, int i, int j);
 double DualEuclideanDistance(const dfy::ManifoldMesh& M, int i, int j);
 double GeodesicDistance(const dfy::ManifoldMesh& M, int i, int j);
-double CurvatureDistance(const dfy::Mesh& M, int i, int j);
-double DualCurvatureDistance(const dfy::ManifoldMesh& M, int i, int j);
+double AngularDistance(const dfy::Mesh& M, int i, int j);
+double DualAngularDistance(const dfy::ManifoldMesh& M, int i, int j);
 double ConstantDistance(const dfy::Mesh&, int i, int j);
 double DualConstantDistance(const dfy::ManifoldMesh&, int i, int j);
 

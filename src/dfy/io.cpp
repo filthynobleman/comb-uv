@@ -43,6 +43,35 @@ bool dfy::ExportMesh(const std::string &Filename,
     }
 }
 
+bool dfy::ExportQuadMesh(const std::string &Filename, 
+                         const dfy::QuadMesh &M)
+{
+    std::ofstream Stream;
+    Stream.open(Filename, std::ios::out);
+    if (!Stream.is_open())
+        return false;
+
+    Stream << "o " << Filename.substr(0, Filename.rfind('.')) << '\n';
+
+    for (int i = 0; i < M.NumVertices(); ++i)
+    {
+        Stream << "v " << M.Vertices()(i, 0) << ' ' 
+                       << M.Vertices()(i, 1) << ' '
+                       << M.Vertices()(i, 2) << '\n';
+    }
+
+    for (int i = 0; i < M.NumQuads(); ++i)
+    {
+        Stream << "f " << (M.Quads()(i, 0) + 1) << ' ' 
+                       << (M.Quads()(i, 1) + 1) << ' ' 
+                       << (M.Quads()(i, 2) + 1) << ' '
+                       << (M.Quads()(i, 3) + 1) << '\n';
+    }
+
+    Stream.close();
+    return true;
+}
+
 bool dfy::ExportPointCloud(const std::string &Filename, 
                            const Eigen::MatrixXd &Points)
 {

@@ -46,6 +46,21 @@ const std::vector<int> &dfy::Embedding::GetBoundaryLoop() const { return m_BLoop
 Eigen::MatrixXd &dfy::Embedding::GetUV() { return m_UV; }
 const Eigen::MatrixXd &dfy::Embedding::UV() const { return m_UV; }
 
+double dfy::Embedding::BoundaryLength() const
+{
+    double L = 0.0;
+    for (int i = 0; i < m_BLoop.size() - 1; ++i)
+    {
+        const auto& v0 = m_Mesh.Vertices().row(m_BLoop[i]);
+        const auto& v1 = m_Mesh.Vertices().row(m_BLoop[i + 1]);
+        L += (v1 - v0).norm();
+    }
+    const auto& v0 = m_Mesh.Vertices().row(m_BLoop.back());
+    const auto& v1 = m_Mesh.Vertices().row(m_BLoop.front());
+    L += (v1 - v0).norm();
+    return L;
+}
+
 void Circle2Square(Eigen::MatrixXd& P)
 {
     int n = P.rows();

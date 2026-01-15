@@ -48,6 +48,8 @@ public:
     const std::vector<int>& GetBoundaryLoop() const;
     const Eigen::MatrixXd& UV() const;
 
+    double BoundaryLength() const;
+
     void MapBoundary(dfy::BoundaryMap BMap = dfy::BoundaryMap::CIRCLE);
     virtual bool Compute() = 0;
 };
