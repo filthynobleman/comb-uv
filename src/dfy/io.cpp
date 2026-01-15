@@ -116,6 +116,7 @@ bool dfy::ExportGImage(const std::string &Filename,
         }
     }
 
+    stbi_flip_vertically_on_write(true);
     int Status = stbi_write_png(Filename.c_str(),
                                 Img.GetWidth(), Img.GetHeight(), 3,
                                 imgdata, Stride);

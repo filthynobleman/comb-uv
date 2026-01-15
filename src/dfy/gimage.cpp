@@ -93,8 +93,8 @@ void dfy::GImage::Compute(const Eigen::MatrixXd &UV,
         // Get triangle
         Eigen::Matrix<double, 3, 2> Tri = UV(TUV(t, Eigen::all).transpose(), Eigen::all);
         // Get bounding box of triangle
-        Eigen::Vector2d dBBL = Tri.colwise().minCoeff();
-        Eigen::Vector2d dBTR = Tri.colwise().maxCoeff();
+        Eigen::Vector2d dBBL = Tri.colwise().minCoeff().cwiseMax(0.0);
+        Eigen::Vector2d dBTR = Tri.colwise().maxCoeff().cwiseMin(1.0);
         Eigen::Vector2i BBL, BTR;
         BBL[0] = std::floor(dBBL[0] * GetWidth());
         BBL[1] = std::floor(dBBL[1] * GetHeight());
@@ -111,7 +111,7 @@ void dfy::GImage::Compute(const Eigen::MatrixXd &UV,
             {
                 // Get the pixel coordinates
                 // Eigen::Vector2d ij{ i, j };
-                Eigen::RowVector2d ij{ (i + 1e-9) / (GetWidth() - (1 - 2e-9)), (j + 1e-9) / (GetHeight() - (1 - 2e-9)) };
+                Eigen::RowVector2d ij{ (i + 1e-6) / (GetWidth() - (1 - 2e-6)), (j + 1e-6) / (GetHeight() - (1 - 2e-6)) };
                 Eigen::RowVector3d Lambda;
                 igl::barycentric_coordinates(ij, Tri.row(0), Tri.row(1), Tri.row(2), Lambda);
                 if ((Lambda.array() > -1e-6).all())

@@ -57,7 +57,7 @@ int main(int argc, const char* const argv[])
         return EXIT_FAILURE;
     }
     std::cout << "Mesh exported" << std::endl;
-    dfy::GImage Img(M, 256);
+    dfy::GImage Img(M, 4096);
     std::cout << "Initialized geometry image" << std::endl;
     Img.Compute(Emb.UV(), DM.Triangles());
     std::cout << "Computed geometry image" << std::endl;
