@@ -38,3 +38,8 @@ set_target_properties(DFY PROPERTIES CXX_STANDARD 17)
 add_executable(Test "${CMAKE_SOURCE_DIR}/src/main.cpp")
 target_link_libraries(Test DFY)
 set_target_properties(Test PROPERTIES CXX_STANDARD 17)
+
+
+add_executable(UVPatches "${CMAKE_SOURCE_DIR}/src/apps/uvpatches.cpp")
+target_link_libraries(UVPatches DFY)
+set_target_properties(UVPatches PROPERTIES CXX_STANDARD 17)

@@ -16,6 +16,8 @@
 
 namespace dfy
 {
+
+typedef double (*MergeScore)(const dfy::ManifoldMesh&, const dfy::Region&, const dfy::Region&);
     
 class Segmentation
 {
@@ -42,12 +44,18 @@ public:
     bool IsAllDisks() const;
 
     void MakeAllDisks(int SubSamples);
+    void MergeRegions(dfy::MergeScore ScoreFun,
+                      double Threshold);
     void CutToDisk(std::vector<int>& EdgeCuts,
                    const Eigen::VectorXd& EdgeWeights);
     void CutToDisk(std::vector<int>& EdgeCut);
 
     dfy::Graph DualGraph() const;
 };
+
+double MinPerimeterScore(const dfy::ManifoldMesh& M,
+                         const dfy::Region& Ri,
+                         const dfy::Region& Rj);
 
 
 } // namespace dfy

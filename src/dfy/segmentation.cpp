@@ -12,6 +12,8 @@
 #include <dfy/utils.hpp>
 #include <dfy/sampler.hpp>
 
+#include <queue>
+
 
 dfy::Segmentation::Segmentation(const dfy::ManifoldMesh &M,
                                 const dfy::Graph& G)
@@ -120,6 +122,68 @@ dfy::Graph dfy::Segmentation::DualGraph() const
     }
 
     return dfy::Graph(Edges, Weights);
+}
+
+void dfy::Segmentation::MergeRegions(dfy::MergeScore ScoreFun, 
+                                     double Threshold)
+{
+    dfy::Graph G = DualGraph();
+
+    bool SomethingMerged = false;
+    do
+    {
+        // Scored approach:
+        // Assign a score to each edge, and select the best scoring edge
+        // Score must not be less than a threshold
+        // Score = Boundary length / maximum area
+        SomethingMerged = false;
+        std::priority_queue<std::pair<double, std::pair<int, int>>> Q;
+        for (int i = 0; i < G.NumNodes(); ++i)
+        {
+            int nadj = G.NumAdjacents(i);
+            for (int jj = 0; jj < nadj; ++jj)
+            {
+                int j = G.GetAdjacent(i, jj).first;
+                if (j < i)
+                    continue;
+                dfy::Region Intersection = dfy::LineIntersection(m_Regions[i], m_Regions[j]);
+                if (Intersection.EulerCharacteristic() != 1)
+                    continue;
+                double Score = ScoreFun(m_Mesh, m_Regions[i], m_Regions[j]);
+                if (Score < Threshold)
+                    continue;
+                std::pair<int, int> ij{ i, j };
+                Q.emplace(Score, ij);
+            }
+        }
+        if (Q.empty())
+            break;
+        
+        SomethingMerged = true;
+        double Score;
+        std::pair<int, int> e;
+        std::tie(Score, e) = Q.top();
+        int i, j;
+        std::tie(i, j) = e;
+        dfy::Region Union = dfy::Union(m_Regions[i], m_Regions[j]);
+        if (Union.EulerCharacteristic() != 1)
+            continue;
+
+        m_Regions[i] = Union;
+        m_Regions.erase(m_Regions.begin() + j);
+
+        for (int f = 0; f < m_Partitions.rows(); ++f)
+        {
+            if (m_Partitions[f] == j)
+                m_Partitions[f] = i;
+            else if (m_Partitions[f] >= j)
+                m_Partitions[f] -= 1;
+        }
+
+
+        SomethingMerged = true;
+        G = DualGraph();
+    } while(SomethingMerged);
 }
 
 void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut)
@@ -265,4 +329,20 @@ void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut,
         if (ECut[e] > 0)
             EdgeCut.emplace_back(e);
     }
+}
+
+double dfy::MinPerimeterScore(const dfy::ManifoldMesh &M, 
+                              const dfy::Region &Ri, 
+                              const dfy::Region &Rj)
+{
+    std::vector<int> FID;
+    Ri.Faces(FID);
+    double Ai = M.FaceAreas()(FID).sum();
+    Rj.Faces(FID);
+    double Aj = M.FaceAreas()(FID).sum();
+    auto Rij = dfy::LineIntersection(Ri, Rj);
+    Rij.Edges(FID);
+    double Eij = M.EdgeLengths()(FID).sum();
+
+    return Eij / std::sqrt(std::max(Ai, Aj));
 }

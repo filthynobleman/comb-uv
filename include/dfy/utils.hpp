@@ -17,34 +17,19 @@
 
 #define NOMINMAX
 
-
-namespace rmt
+namespace dfy
 {
-
-template<typename T>
-struct PairHash
+    
+enum UVMapAlgorithm
 {
-    std::size_t operator()(const std::pair<T, T>& X) const noexcept
-    {
-        std::hash<T> h{};
-        return h(X.first) ^ h(X.second);
-    }
+    TUTTE,
+    HARMONIC,
+    ARAP,
+    CONFORMAL
 };
 
-template<typename T>
-struct TripleHash
-{
-    std::size_t operator()(const std::tuple<T, T, T>& X) const noexcept
-    {
-        std::hash<T> h{};
-        return h(std::get<0>(X)) ^ (h(std::get<1>(X) ^ (h(std::get<2>(X)) << 1)) << 1);
-    }
-};
+} // namespace dfy
 
-
-
-
-} // namespace rmt
 
 namespace Eigen
 {
