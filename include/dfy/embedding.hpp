@@ -50,7 +50,7 @@ public:
 
     double BoundaryLength() const;
 
-    void MapBoundary(dfy::BoundaryMap BMap = dfy::BoundaryMap::CIRCLE);
+    virtual void MapBoundary(dfy::BoundaryMap BMap = dfy::BoundaryMap::CIRCLE);
     virtual bool Compute() = 0;
 };
 

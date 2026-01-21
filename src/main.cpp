@@ -11,6 +11,7 @@
 #include <dfy/segmentation.hpp>
 #include <dfy/sampler.hpp>
 #include <dfy/tutte.hpp>
+#include <dfy/arap.hpp>
 #include <dfy/gimage.hpp>
 #include <dfy/imgsampler.hpp>
 #include <iostream>
@@ -31,7 +32,7 @@ int main(int argc, const char* const argv[])
     dfy::Segmentation Seg(M, G, Smpl.GetPartitions());
     std::cout << "Segmentation built" << std::endl;
     Seg.MakeAllDisks(5);
-    std::cout << "Disks computed" << std::endl;
+    std::cout << "Disks computed (" << Seg.NumRegions() << ")" << std::endl;
     std::vector<int> DParts(Seg.GetTriParts().data(), 
                             Seg.GetTriParts().data() + M.NumTriangles());
     dfy::ExportList("./disks.txt", DParts);
@@ -43,11 +44,14 @@ int main(int argc, const char* const argv[])
     {
         int i = M.EdgeTriAdj()(e, 0);
         int j = M.EdgeTriAdj()(e, 1);
+        // int i = M.Edges()(e, 0);
+        // int j = M.Edges()(e, 1);
         if (i == -1 || j == -1)
             EWeights[e] = 0;
         else
-            EWeights[e] = 2 - dfy::DualAngularDistance(M, i, j);
+            EWeights[e] = dfy::DualAngularDistance(M, i, j);
     }
+    EWeights = EWeights.maxCoeff() - EWeights.array();
     Seg.CutToDisk(CutEdges, EWeights);
     std::cout << "Cut to disk computed" << std::endl;
     dfy::ExportPointCloud("./edges.obj", M.EdgeCenters()(CutEdges, Eigen::all).eval());

@@ -43,3 +43,13 @@ set_target_properties(Test PROPERTIES CXX_STANDARD 17)
 add_executable(UVPatches "${CMAKE_SOURCE_DIR}/src/apps/uvpatches.cpp")
 target_link_libraries(UVPatches DFY)
 set_target_properties(UVPatches PROPERTIES CXX_STANDARD 17)
+
+
+add_executable(Diskify "${CMAKE_SOURCE_DIR}/src/apps/diskify.cpp")
+target_link_libraries(Diskify DFY)
+set_target_properties(Diskify PROPERTIES CXX_STANDARD 17)
+
+
+add_executable(GeometryImage "${CMAKE_SOURCE_DIR}/src/apps/geomimg.cpp")
+target_link_libraries(GeometryImage DFY)
+set_target_properties(GeometryImage PROPERTIES CXX_STANDARD 17)
