@@ -53,7 +53,7 @@ int main(int argc, const char* const argv[])
         // else
         //     EWeights[e] = dfy::DualAngularDistance(M, i, j);
     }
-    EWeights = EWeights.maxCoeff() - EWeights.array();
+    // EWeights = EWeights.maxCoeff() - EWeights.array();
     Seg.CutToDisk(CutEdges, EWeights);
     std::cout << "Cut to disk computed" << std::endl;
     dfy::ExportPointCloud("./edges.obj", M.EdgeCenters()(CutEdges, Eigen::all).eval());
@@ -82,7 +82,7 @@ int main(int argc, const char* const argv[])
     std::cout << "Computed geometry image" << std::endl;
     dfy::ExportGImage("./gimage.png", Img);
     std::cout << "Exported geometry image" << std::endl;
-    int QSize = 64;
+    int QSize = 128;
     dfy::QuadMesh QM = Img.AsQuadMesh(QSize);
     std::cout << "Created quad mesh" << std::endl;
     dfy::ExportQuadMesh("./qmesh.obj", QM);

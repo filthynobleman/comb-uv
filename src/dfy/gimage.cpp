@@ -15,6 +15,7 @@
 #include <igl/barycentric_coordinates.h>
 
 #include <Eigen/IterativeLinearSolvers>
+#include <Eigen/SparseCholesky>
 
 #include <fstream>
 
@@ -228,7 +229,9 @@ dfy::QuadMesh dfy::GImage::AsQuadMesh(int URes, int VRes, bool Weld) const
     std::vector<Eigen::Triplet<double>> JTrips;
     JTrips.reserve(EMap.size() * 4);
     Eigen::VectorXd Residual;
-    for (int Iter = 0; Iter < MaxIter && Err > 1e-6; ++Iter)
+    Eigen::SparseMatrix<double> J;
+    J.resize(EMap.size(), 2 * (URes - 2) * (VRes - 2));
+    for (int Iter = 0; Iter < MaxIter && Err > 1e-4; ++Iter)
     {
         // Create Jacobian and residual vector
         JTrips.clear();
@@ -261,10 +264,12 @@ dfy::QuadMesh dfy::GImage::AsQuadMesh(int URes, int VRes, bool Weld) const
                         // Eigen::Vector2d GE = 2 * J.transpose() * Phi12;
 
                         int OtherIdx = (j + dj) * URes + (i + di);
+                        if (OtherIdx > GlobalIdx)
+                            GE = -GE;
                         std::pair<int, int> EIdx{ std::min(OtherIdx, GlobalIdx), std::max(OtherIdx, GlobalIdx) };
                         JTrips.emplace_back(EMap[EIdx], 2 * LocalIdx, GE.x());
                         JTrips.emplace_back(EMap[EIdx], 2 * LocalIdx + 1, GE.y());
-                        Residual[EMap[EIdx]] = E12.squaredNorm() + Phi12.squaredNorm();
+                        Residual[EMap[EIdx]] = 1e-1 * E12.squaredNorm() + 1e-2 * Phi12.squaredNorm();
                         // Residual[EMap[EIdx]] = E12.squaredNorm();
                         // Residual[EMap[EIdx]] = Phi12.squaredNorm();
                     }
@@ -273,8 +278,6 @@ dfy::QuadMesh dfy::GImage::AsQuadMesh(int URes, int VRes, bool Weld) const
         }
 
 
-        Eigen::SparseMatrix<double> J;
-        J.resize(EMap.size(), 2 * (URes - 2) * (VRes - 2));
         J.setFromTriplets(JTrips.begin(), JTrips.end());
 
         Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<double>> Solver;
@@ -288,12 +291,12 @@ dfy::QuadMesh dfy::GImage::AsQuadMesh(int URes, int VRes, bool Weld) const
             for (int i = 1; i < URes - 1; ++i)
             {
                 int Idx = (j - 1) * (URes - 2) + i - 1;
-                U(j, i) -= 0.25 / URes * UV[2 * Idx];
-                V(j, i) -= 0.25 / VRes * UV[2 * Idx + 1];
+                U(j, i) -= 1.0 / URes * UV[2 * Idx];
+                V(j, i) -= 1.0 / VRes * UV[2 * Idx + 1];
             }
         }
     }
-    if (Err > 1e-6)
+    if (Err > 1e-4)
         std::cerr << "WARNING: Optimization did not converge." << std::endl;
     std::cout << Err << std::endl;
 
