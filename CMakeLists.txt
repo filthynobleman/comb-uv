@@ -12,6 +12,9 @@ add_library(STB STATIC "${CMAKE_SOURCE_DIR}/src/stb/stb.cpp")
 # Project headers
 include_directories("${CMAKE_SOURCE_DIR}/include")
 
+# Parallelism
+find_package(OpenMP)
+
 
 # Project binaries
 add_library(DFY STATIC  "${CMAKE_SOURCE_DIR}/src/dfy/mesh.cpp"
@@ -31,6 +34,9 @@ add_library(DFY STATIC  "${CMAKE_SOURCE_DIR}/src/dfy/mesh.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/minheap.cpp"
                         "${CMAKE_SOURCE_DIR}/src/dfy/io.cpp")
 target_link_libraries(DFY STB)
+if (OpenMP_FOUND)
+    target_link_libraries(DFY OpenMP::OpenMP_CXX)
+endif()
 set_target_properties(DFY PROPERTIES CXX_STANDARD 17)
 
 

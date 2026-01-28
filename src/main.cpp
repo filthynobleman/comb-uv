@@ -11,6 +11,7 @@
 #include <dfy/segmentation.hpp>
 #include <dfy/sampler.hpp>
 #include <dfy/tutte.hpp>
+#include <dfy/harmonic.hpp>
 #include <dfy/arap.hpp>
 #include <dfy/gimage.hpp>
 #include <dfy/imgsampler.hpp>
@@ -20,7 +21,7 @@ int main(int argc, const char* const argv[])
 {
     dfy::ManifoldMesh M(argv[1]);
     std::cout << "Loaded mesh " << argv[1] << std::endl;
-    dfy::Graph G = dfy::DualMeshToGraph(M, dfy::DualAngularDistance);
+    dfy::Graph G = dfy::DualMeshToGraph(M, dfy::GeodesicDistance);
     std::cout << "Converted to graph (" << G.NumEdges() / 2 << " edges)" << std::endl;
     dfy::Sampler Smpl(G);
     Smpl.AddSamples(5);
@@ -42,14 +43,15 @@ int main(int argc, const char* const argv[])
     EWeights.resize(M.NumEdges());
     for (int e = 0; e < M.NumEdges(); ++e)
     {
-        int i = M.EdgeTriAdj()(e, 0);
-        int j = M.EdgeTriAdj()(e, 1);
-        // int i = M.Edges()(e, 0);
-        // int j = M.Edges()(e, 1);
-        if (i == -1 || j == -1)
-            EWeights[e] = 0;
-        else
-            EWeights[e] = dfy::DualAngularDistance(M, i, j);
+        int i = M.Edges()(e, 0);
+        int j = M.Edges()(e, 1);
+        EWeights[e] = dfy::EuclideanDistance(M, i, j);
+        // int i = M.EdgeTriAdj()(e, 0);
+        // int j = M.EdgeTriAdj()(e, 1);
+        // if (i == -1 || j == -1)
+        //     EWeights[e] = 0;
+        // else
+        //     EWeights[e] = dfy::DualAngularDistance(M, i, j);
     }
     EWeights = EWeights.maxCoeff() - EWeights.array();
     Seg.CutToDisk(CutEdges, EWeights);
@@ -59,7 +61,7 @@ int main(int argc, const char* const argv[])
     std::cout << "Cut executed" << std::endl;
     dfy::ExportMesh("./cut.obj", DM);
     std::cout << "Cut exported" << std::endl;
-    dfy::TutteEmbedding Emb(DM);
+    dfy::HarmonicEmbedding Emb(DM);
     std::cout << "Boundary length: " << Emb.BoundaryLength() << std::endl;
     Emb.MapBoundary(dfy::BoundaryMap::SQUARE);
     if (!Emb.Compute())
@@ -80,23 +82,8 @@ int main(int argc, const char* const argv[])
     std::cout << "Computed geometry image" << std::endl;
     dfy::ExportGImage("./gimage.png", Img);
     std::cout << "Exported geometry image" << std::endl;
-    dfy::ImageSampler ImgSmpl(Img);
-    Eigen::MatrixXd QVerts;
-    int QSize = 256;
-    QVerts.resize(QSize * QSize, 3);
-    for (int j = 0; j < QSize; ++j)
-    {
-        double v = j / (QSize - 1.0);
-        for (int i = 0; i < QSize; ++i)
-        {
-            double u = i / (QSize - 1.0);
-            int RowIdx = j * QSize + i;
-            QVerts.row(RowIdx) = ImgSmpl.Sample(u, v, dfy::ImgInterpType::CUBIC);
-            // QVerts.row(RowIdx) = Img.GetPixel(i, j);
-        }
-    }
-    std::cout << "Sampled image" << std::endl;
-    dfy::QuadMesh QM(QVerts, QSize, QSize);
+    int QSize = 64;
+    dfy::QuadMesh QM = Img.AsQuadMesh(QSize);
     std::cout << "Created quad mesh" << std::endl;
     dfy::ExportQuadMesh("./qmesh.obj", QM);
     std::cout << "Exported quad mesh" << std::endl;

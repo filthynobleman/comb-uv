@@ -46,6 +46,10 @@ public:
                            dfy::ImgInterpType InterpType = dfy::LINEAR) const;
     Eigen::Vector3d Sample(const Eigen::Vector2d& uv,
                            dfy::ImgInterpType InterpType = dfy::LINEAR) const;
+    Eigen::Matrix<double, 3, 2> Jacobian(double u, double v,
+                                         dfy::ImgInterpType InterpType = dfy::LINEAR) const;
+    Eigen::Matrix<double, 3, 2> Jacobian(const Eigen::Vector2d& uv,
+                                         dfy::ImgInterpType InterpType = dfy::LINEAR) const;
 };
 
 

@@ -10,7 +10,7 @@
 #pragma once
 
 #include <dfy/mesh.hpp>
-
+#include <dfy/quadmesh.hpp>
 
 
 
@@ -48,6 +48,9 @@ public:
 
     void Compute(const Eigen::MatrixXd& UV,
                  const Eigen::MatrixXi& TUV);
+
+    dfy::QuadMesh AsQuadMesh(int URes, int VRes, bool Weld = false) const;
+    dfy::QuadMesh AsQuadMesh(int Res, bool Weld = false) const;
 };
 
 
