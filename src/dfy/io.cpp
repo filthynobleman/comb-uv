@@ -153,3 +153,29 @@ bool dfy::ExportGImage(const std::string &Filename,
     delete imgdata;
     return Status != 0;
 }
+
+bool dfy::ExportCut(const std::string &Filename, 
+                    const dfy::ManifoldMesh &M, 
+                    const std::vector<int> &EdgeCut)
+{
+    std::ofstream Stream;
+    Stream.open(Filename, std::ios::out);
+    if (!Stream.is_open())
+        return false;
+
+    Stream << "o " << Filename.substr(0, Filename.rfind('.')) << '\n';
+
+    for (int i = 0; i < M.NumVertices(); ++i)
+    {
+        Stream << "v " << M.Vertices()(i, 0) << ' ' 
+                       << M.Vertices()(i, 1) << ' '
+                       << M.Vertices()(i, 2) << '\n';
+    }
+
+    for (int e : EdgeCut)
+        Stream << "l " << M.Edges()(e, 0) + 1 << ' ' 
+                       << M.Edges()(e, 1) + 1 << '\n';
+
+    Stream.close();
+    return true;
+}

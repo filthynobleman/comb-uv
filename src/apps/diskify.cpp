@@ -133,6 +133,9 @@ int main(int argc, const char* const argv[])
             EWeights[e] = 2.0 - dfy::DualAngularDistance(M, i, j);
     }
     Seg.CutToDisk(CutEdges, EWeights);
+    std::sort(CutEdges.begin(), CutEdges.end());
+    auto CEDel = std::unique(CutEdges.begin(), CutEdges.end());
+    CutEdges.erase(CEDel, CutEdges.end());
     if (CLIArgs.Verbosity > 1)
     {
         std::cout << "Cut computed in ";

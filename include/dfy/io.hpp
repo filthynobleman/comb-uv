@@ -44,6 +44,10 @@ bool ExportGraph(const std::string& Filename,
 bool ExportGImage(const std::string& Filename,
                   const dfy::GImage& Img);
 
+bool ExportCut(const std::string& Filename,
+               const dfy::ManifoldMesh& M,
+               const std::vector<int>& EdgeCut);
+
 template<typename T>
 bool ExportList(const std::string& Filename,
                 const std::vector<T>& List)

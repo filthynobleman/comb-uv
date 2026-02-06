@@ -121,83 +121,31 @@ dfy::Mesh dfy::ManifoldMesh::CutEdges(const std::vector<bool> &EdgeFlags) const
 
 void dfy::ManifoldMesh::InitManifoldMesh()
 {
-    // Create vector of edges
-    // Each edge keeps track of its generating triangle and 
-    // its original index in the edges array
-    std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> EdgeVec;
-    EdgeVec.reserve(3 * NumTriangles());
-    // This initial iteration will also fill the tri-edge adjacency
+    // Create edges through a map
+    std::map<std::pair<int, int>, int> EMap;
+    // Use this to also fill tri-edge adjacency
     m_T2E.setConstant(NumTriangles(), 3, -1);
     for (int i = 0; i < NumTriangles(); ++i)
     {
         std::pair<int, int> e;
-        std::pair<int, int> data;
-
-        // Create the edge 01
-        e.first = Triangles()(i, 0);
-        e.second = Triangles()(i, 1);
-        if (e.first > e.second)
-            std::swap(e.first, e.second);
-        data.first = i;
-        data.second = EdgeVec.size();
-        EdgeVec.emplace_back(e, data);
-        // Triangle-edge adjacency
-        m_T2E(i, 2) = data.second;
-
-        // Create the edge 12
-        e.first = Triangles()(i, 1);
-        e.second = Triangles()(i, 2);
-        if (e.first > e.second)
-            std::swap(e.first, e.second);
-        data.first = i;
-        data.second = EdgeVec.size();
-        EdgeVec.emplace_back(e, data);
-        // Triangle-edge adjacency
-        m_T2E(i, 0) = data.second;
-
-        // Create the edge 20
-        e.first = Triangles()(i, 2);
-        e.second = Triangles()(i, 0);
-        if (e.first > e.second)
-            std::swap(e.first, e.second);
-        data.first = i;
-        data.second = EdgeVec.size();
-        EdgeVec.emplace_back(e, data);
-        // Triangle-edge adjacency
-        m_T2E(i, 1) = data.second;
-    }
-
-    // Sort the edges to identify the uniques
-    std::sort(EdgeVec.begin(), EdgeVec.end());
-    int ELen = 0;
-    std::pair<int, int> eCur = EdgeVec[0].first;
-    for (int i = 0; i < EdgeVec.size(); ++i)
-    {
-        std::pair<int, int> e;
-        std::pair<int, int> data;
-        std::tie(e, data) = EdgeVec[i];
-        if (e != eCur)
-        {
-            EdgeVec[++ELen].first = e;
-            eCur = e;
-        }
         for (int j = 0; j < 3; ++j)
         {
-            if (m_T2E(data.first, j) == data.second)
-            {
-                m_T2E(data.first, j) = ELen;
-                break;
-            }
+            e.first = Triangles()(i, j);
+            e.second = Triangles()(i, (j + 1) % 3);
+            if (e.second < e.first)
+                std::swap(e.first, e.second);
+            if (EMap.find(e) == EMap.end())
+                EMap.emplace(e, (int)EMap.size());
+            m_T2E(i, (j + 2) % 3) = EMap[e];
         }
     }
-    ELen++;
 
     // Get the edges
-    m_E.resize(ELen, 2);
-    for (int i = 0; i < ELen; ++i)
+    m_E.resize(EMap.size(), 2);
+    for (auto it : EMap)
     {
-        m_E(i, 0) = EdgeVec[i].first.first;
-        m_E(i, 1) = EdgeVec[i].first.second;
+        m_E(it.second, 0) = it.first.first;
+        m_E(it.second, 1) = it.first.second;
     }
     m_EL = (Vertices()(m_E(Eigen::all, 0), Eigen::all) - Vertices()(m_E(Eigen::all, 1), Eigen::all)).rowwise().norm();
 

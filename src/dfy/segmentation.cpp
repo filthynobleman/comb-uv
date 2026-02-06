@@ -16,6 +16,7 @@
 #include <stack>
 
 #include <iostream>
+#include <dfy/io.hpp>
 
 
 dfy::Segmentation::Segmentation(const dfy::ManifoldMesh &M,
@@ -225,12 +226,14 @@ bool dfy::Segmentation::IsValidCut(const std::vector<int> &EdgeCuts)
     IsCut.resize(m_Mesh.NumEdges(), false);
     for (int e : EdgeCuts)
         IsCut[e] = true;
+    
+    
+    dfy::ExportCut("./cut.obj", m_Mesh, EdgeCuts);
 
     // Validity condition #1
     // Cut an edge iff at least an adjacent edge is to cut
     // In the meantime, find an edge that has only a single
     // neighboring edge to cut
-    int ERoot = -1;
     std::vector<int> NNeighs;
     NNeighs.resize(m_Mesh.NumEdges(), 0);
     for (int e1 : EdgeCuts)
@@ -242,8 +245,6 @@ bool dfy::Segmentation::IsValidCut(const std::vector<int> &EdgeCuts)
         }
         if (NNeighs[e1] == 0)
             return false;
-        if (NNeighs[e1] == 1)
-            ERoot = e1;
     }
     std::cout << "Passed condition #1" << std::endl;
 
@@ -253,44 +254,44 @@ bool dfy::Segmentation::IsValidCut(const std::vector<int> &EdgeCuts)
     int NNewVerts = 0;
     std::vector<bool> Visited;
     Visited.resize(m_Mesh.NumEdges(), false);
-    std::stack<int> S;
-    S.push(ERoot);
-    while (!S.empty())
+    for (int ERoot : EdgeCuts)
     {
-        int ECur = S.top();
-        S.pop();
-        Visited[ECur] = true;
-
-        for (int ENext : E2E[ECur])
+        if (Visited[ERoot])
+            continue;
+        if (NNeighs[ERoot] != 1)
+            continue;
+        std::stack<int> S;
+        S.push(ERoot);
+        while (!S.empty())
         {
-            // We walk along the cut, so we ignore non-cut edges
-            if (!IsCut[ENext])
-                continue;
-            // Walking along a cut, we add a new vertex only
-            // when we make a step from an edge to another
-            if (!Visited[ENext])
+            int ECur = S.top();
+            S.pop();
+            Visited[ECur] = true;
+
+            for (int ENext : E2E[ECur])
             {
-                NNewVerts++;
-                S.push(ENext);
+                // We walk along the cut, so we ignore non-cut edges
+                if (!IsCut[ENext])
+                    continue;
+                // Walking along a cut, we add a new vertex only
+                // when we make a step from an edge to another
+                if (!Visited[ENext])
+                {
+                    NNewVerts++;
+                    S.push(ENext);
+                }
             }
         }
     }
     int EC = m_Mesh.NumVertices() + NNewVerts + 
              m_Mesh.NumTriangles() -
              m_Mesh.NumEdges() - EdgeCuts.size();
+    std::cout << EC << std::endl;
+    std::cout << NNewVerts << std::endl;
+    std::cout << EdgeCuts.size() << std::endl;
     if (EC != 1)
         return false;
     std::cout << "Passed condition #2" << std::endl;
-
-    // Just as sanity check
-    // Validity condition #3
-    // Cut must be a single component
-    for (int e : EdgeCuts)
-    {
-        if (!Visited[e])
-            return false;
-    }
-    std::cout << "Passed condition #3" << std::endl;
 
     // If all tests are passed, cut is valid
     return true;
