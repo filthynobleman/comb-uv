@@ -13,6 +13,9 @@
 #include <dfy/sampler.hpp>
 
 #include <queue>
+#include <stack>
+
+#include <iostream>
 
 
 dfy::Segmentation::Segmentation(const dfy::ManifoldMesh &M,
@@ -73,6 +76,7 @@ void dfy::Segmentation::MakeAllDisks(int SubSamples)
         Changes = false;
         Eigen::VectorXi NewParts = m_Partitions;
         int NewNumRegs = NumRegions();
+        #pragma omp parallel for
         for (int rid = 0; rid < NumRegions(); ++rid)
         {
             const auto& r = GetRegion(rid);
@@ -186,6 +190,112 @@ void dfy::Segmentation::MergeRegions(dfy::MergeScore ScoreFun,
     } while(SomethingMerged);
 }
 
+bool dfy::Segmentation::IsValidCut(const std::vector<int> &EdgeCuts)
+{
+    // Build vertex-edge adjacency
+    std::vector<std::vector<int>> V2E;
+    V2E.resize(m_Mesh.NumVertices());
+    for (auto& l : V2E)
+        l.reserve(10);
+    for (int i = 0; i < m_Mesh.NumEdges(); ++i)
+    {
+        for (int j = 0; j < 2; ++j)
+            V2E[m_Mesh.Edges()(i, j)].push_back(i);
+    }
+
+    // Build edge-edge adjacency
+    std::vector<std::vector<int>> E2E;
+    E2E.resize(m_Mesh.NumEdges());
+    for (auto& l : E2E)
+        l.reserve(10);
+    for (int i = 0; i < m_Mesh.NumVertices(); ++i)
+    {
+        for (int j = 0; j < V2E[i].size(); ++j)
+        {
+            for (int k = j + 1; k < V2E[i].size(); ++k)
+            {
+                E2E[V2E[i][j]].push_back(V2E[i][k]);
+                E2E[V2E[i][k]].push_back(V2E[i][j]);
+            }
+        }
+    }
+
+    // Build cut mask
+    std::vector<bool> IsCut;
+    IsCut.resize(m_Mesh.NumEdges(), false);
+    for (int e : EdgeCuts)
+        IsCut[e] = true;
+
+    // Validity condition #1
+    // Cut an edge iff at least an adjacent edge is to cut
+    // In the meantime, find an edge that has only a single
+    // neighboring edge to cut
+    int ERoot = -1;
+    std::vector<int> NNeighs;
+    NNeighs.resize(m_Mesh.NumEdges(), 0);
+    for (int e1 : EdgeCuts)
+    {
+        for (int e2 : E2E[e1])
+        {
+            if (IsCut[e2])
+                NNeighs[e1]++;
+        }
+        if (NNeighs[e1] == 0)
+            return false;
+        if (NNeighs[e1] == 1)
+            ERoot = e1;
+    }
+    std::cout << "Passed condition #1" << std::endl;
+
+    // Validity condition #2
+    // Resulting mesh after the cut must have disk-topology
+    // Count how many vertices are added
+    int NNewVerts = 0;
+    std::vector<bool> Visited;
+    Visited.resize(m_Mesh.NumEdges(), false);
+    std::stack<int> S;
+    S.push(ERoot);
+    while (!S.empty())
+    {
+        int ECur = S.top();
+        S.pop();
+        Visited[ECur] = true;
+
+        for (int ENext : E2E[ECur])
+        {
+            // We walk along the cut, so we ignore non-cut edges
+            if (!IsCut[ENext])
+                continue;
+            // Walking along a cut, we add a new vertex only
+            // when we make a step from an edge to another
+            if (!Visited[ENext])
+            {
+                NNewVerts++;
+                S.push(ENext);
+            }
+        }
+    }
+    int EC = m_Mesh.NumVertices() + NNewVerts + 
+             m_Mesh.NumTriangles() -
+             m_Mesh.NumEdges() - EdgeCuts.size();
+    if (EC != 1)
+        return false;
+    std::cout << "Passed condition #2" << std::endl;
+
+    // Just as sanity check
+    // Validity condition #3
+    // Cut must be a single component
+    for (int e : EdgeCuts)
+    {
+        if (!Visited[e])
+            return false;
+    }
+    std::cout << "Passed condition #3" << std::endl;
+
+    // If all tests are passed, cut is valid
+    return true;
+}
+
 void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut)
 {
     CutToDisk(EdgeCut, m_Mesh.EdgeLengths());
@@ -221,12 +331,10 @@ void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut,
             // Add to list of potential cuts
             Rij.Edges(Eij);
             ECut(Eij).setOnes();
-            // std::cout << Rij.EulerCharacteristic() << std::endl;
             // Single segment is easy
             if (Rij.EulerCharacteristic() == 1)
             {
                 RegEdges.emplace_back(i, j);
-                // Negated weight, as we want the maximum spanning tree
                 Weights.emplace_back(ELens(Eij).sum());
                 continue;
             }
@@ -279,15 +387,11 @@ void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut,
             std::vector<std::vector<int>> Chains;
             Chains.resize(std::max(Rij.EulerCharacteristic(), (*it) + 1));
             for (int k = 0; k < ECC.size(); ++k)
-            {
-                
                 Chains[ECC[k]].emplace_back(Eij[k]);
-            }
-            // std::cout << "Chains built" << std::endl;
             // Find longest boundary
             int MaxChainIdx = 0;
             double MaxChainLen = ELens(Chains[0]).sum();
-            for (int k = 1; k < Chains.size(); ++k)
+            for (int k = 0; k < Chains.size(); ++k)
             {
                 double ChainLen = ELens(Chains[k]).sum();
                 if (ChainLen <= MaxChainLen)

@@ -21,7 +21,7 @@ int main(int argc, const char* const argv[])
 {
     dfy::ManifoldMesh M(argv[1]);
     std::cout << "Loaded mesh " << argv[1] << std::endl;
-    dfy::Graph G = dfy::DualMeshToGraph(M, dfy::GeodesicDistance);
+    dfy::Graph G = dfy::DualMeshToGraph(M, dfy::DualAngularDistance);
     std::cout << "Converted to graph (" << G.NumEdges() / 2 << " edges)" << std::endl;
     dfy::Sampler Smpl(G);
     Smpl.AddSamples(5);
@@ -43,17 +43,17 @@ int main(int argc, const char* const argv[])
     EWeights.resize(M.NumEdges());
     for (int e = 0; e < M.NumEdges(); ++e)
     {
-        int i = M.Edges()(e, 0);
-        int j = M.Edges()(e, 1);
-        EWeights[e] = dfy::EuclideanDistance(M, i, j);
-        // int i = M.EdgeTriAdj()(e, 0);
-        // int j = M.EdgeTriAdj()(e, 1);
-        // if (i == -1 || j == -1)
-        //     EWeights[e] = 0;
-        // else
-        //     EWeights[e] = dfy::DualAngularDistance(M, i, j);
+        // int i = M.Edges()(e, 0);
+        // int j = M.Edges()(e, 1);
+        // EWeights[e] = dfy::EuclideanDistance(M, i, j);
+        int i = M.EdgeTriAdj()(e, 0);
+        int j = M.EdgeTriAdj()(e, 1);
+        if (i == -1 || j == -1)
+            EWeights[e] = 0;
+        else
+            EWeights[e] = dfy::DualAngularDistance(M, i, j);
     }
-    // EWeights = EWeights.maxCoeff() - EWeights.array();
+    EWeights = EWeights.maxCoeff() - EWeights.array();
     Seg.CutToDisk(CutEdges, EWeights);
     std::cout << "Cut to disk computed" << std::endl;
     dfy::ExportPointCloud("./edges.obj", M.EdgeCenters()(CutEdges, Eigen::all).eval());
@@ -61,7 +61,7 @@ int main(int argc, const char* const argv[])
     std::cout << "Cut executed" << std::endl;
     dfy::ExportMesh("./cut.obj", DM);
     std::cout << "Cut exported" << std::endl;
-    dfy::HarmonicEmbedding Emb(DM);
+    dfy::TutteEmbedding Emb(DM);
     std::cout << "Boundary length: " << Emb.BoundaryLength() << std::endl;
     Emb.MapBoundary(dfy::BoundaryMap::SQUARE);
     if (!Emb.Compute())
@@ -82,8 +82,8 @@ int main(int argc, const char* const argv[])
     std::cout << "Computed geometry image" << std::endl;
     dfy::ExportGImage("./gimage.png", Img);
     std::cout << "Exported geometry image" << std::endl;
-    int QSize = 128;
-    dfy::QuadMesh QM = Img.AsQuadMesh(QSize);
+    int QSize = 32;
+    dfy::QuadMesh QM = Img.AsQuadMesh(M, QSize);
     std::cout << "Created quad mesh" << std::endl;
     dfy::ExportQuadMesh("./qmesh.obj", QM);
     std::cout << "Exported quad mesh" << std::endl;

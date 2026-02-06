@@ -135,13 +135,18 @@ int main(int argc, const char* const argv[])
     Seg.CutToDisk(CutEdges, EWeights);
     if (CLIArgs.Verbosity > 1)
     {
-        std::cout << "Computed cut in ";
+        std::cout << "Cut computed in ";
         std::cout << StopTimer() << " seconds.";
         std::cout << std::endl;
     }
 
     // Realize cut and unwrap
     StartTimer();
+    if (!Seg.IsValidCut(CutEdges))
+    {
+        std::cerr << "Computed cut is invalid." << std::endl;
+        return EXIT_FAILURE;
+    }
     Eigen::MatrixXd UV;
     dfy::Mesh CM = M.CutEdges(CutEdges);
     if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::TUTTE)
@@ -347,7 +352,7 @@ void Usage(const std::string &argv0)
     std::cout << "    num_samples is the number of samples for the initial Voronoi partitioning. Default is 5." << std::endl;
     std::cout << "    disk_samples is the number of sub-samples that must subdivide non topological disks. Default is 5." << std::endl;
     std::cout << "    metric is the function used to weight edges. Acceptable values are \'euclidean\', \'angular\', \'geodesic\'. Default is \'angular\'." << std::endl;
-    std::cout << "    algorithm is the UV unwrapping algorithm for each region. Acceptable values are \'tutte\', \'harmonic\', \'conformal\', \'arap\'. Default is \'harmonic\'." << std::endl;
+    std::cout << "    algorithm is the UV unwrapping algorithm for each region. Acceptable values are \'tutte\', \'harmonic\', \'conformal\', \'arap\'. Default is \'tutte\'." << std::endl;
     std::cout << "    verbosity is the verbosity level of the output, ranging from 0 (no output) to 2 (runtime of each step). Default is 1 (total runtime)." << std::endl;
     std::cout << "    -s|--smooth option outputs a mesh with smoothed normals. By default, output mesh has constant normals over triangles." << std::endl;
     std::cout << "    -h|--help option prints this help message." << std::endl;

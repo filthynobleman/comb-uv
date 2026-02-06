@@ -46,6 +46,7 @@ public:
     void MakeAllDisks(int SubSamples);
     void MergeRegions(dfy::MergeScore ScoreFun,
                       double Threshold);
+    bool IsValidCut(const std::vector<int>& EdgeCuts);
     void CutToDisk(std::vector<int>& EdgeCuts,
                    const Eigen::VectorXd& EdgeWeights);
     void CutToDisk(std::vector<int>& EdgeCut);
