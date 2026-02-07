@@ -94,6 +94,13 @@ void dfy::Mesh::InitMesh()
 int dfy::Mesh::NumVertices() const { return m_V.rows(); }
 int dfy::Mesh::NumTriangles() const { return m_F.rows(); }
 
+void dfy::Mesh::FlipTriangle(int i)
+{
+    std::swap(m_F(i, 0), m_F(i, 1));
+    std::swap(m_Angles(i, 0), m_Angles(i, 1));
+    m_NF.row(i) *= -1;
+}
+
 
 const Eigen::MatrixXd& dfy::Mesh::Vertices() const { return m_V; }
 const Eigen::MatrixXi& dfy::Mesh::Triangles() const { return m_F; }

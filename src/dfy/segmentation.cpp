@@ -331,12 +331,13 @@ void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut,
                 continue;
             // Add to list of potential cuts
             Rij.Edges(Eij);
-            ECut(Eij).setOnes();
+            ECut(Eij).setConstant(2);
             // Single segment is easy
             if (Rij.EulerCharacteristic() == 1)
             {
                 RegEdges.emplace_back(i, j);
                 Weights.emplace_back(ELens(Eij).sum());
+                ECut(Eij).setOnes();
                 continue;
             }
             // With multiple segments, we first need the connected components
@@ -404,13 +405,14 @@ void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut,
             // Add longest boundary to graph
             RegEdges.emplace_back(i, j);
             Weights.emplace_back(MaxChainLen);
-            // All other edges are to cut for sure
-            for (int k = 0; k < Chains.size(); ++k)
-            {
-                if (k == MaxChainIdx)
-                    continue;
-                EdgeCut.insert(EdgeCut.end(), Chains[k].begin(), Chains[k].end());
-            }
+            ECut(Chains[MaxChainIdx]).setOnes();
+            // // All other edges are to cut for sure
+            // for (int k = 0; k < Chains.size(); ++k)
+            // {
+            //     if (k == MaxChainIdx)
+            //         continue;
+            //     EdgeCut.insert(EdgeCut.end(), Chains[k].begin(), Chains[k].end());
+            // }
             // std::cout << "Added edges to cut" << std::endl;
         }
     }
@@ -425,7 +427,7 @@ void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut,
         auto Rij = dfy::LineIntersection(GetRegion(e.first), GetRegion(e.second));
         std::vector<int> Eij;
         Rij.Edges(Eij);
-        ECut(Eij).setZero();
+        ECut(Eij) = ECut(Eij).array() - 1;
     }
 
     // Add potential cuts to cut list

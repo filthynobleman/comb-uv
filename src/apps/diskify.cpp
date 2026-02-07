@@ -58,6 +58,7 @@ int main(int argc, const char* const argv[])
     // Load mesh
     StartTimer();
     dfy::ManifoldMesh M(CLIArgs.InputFile);
+    M.FixFaceOrientation();
     if (CLIArgs.Verbosity > 1)
     {
         std::cout << "Loaded mesh " << CLIArgs.InputFile;
@@ -136,6 +137,7 @@ int main(int argc, const char* const argv[])
     std::sort(CutEdges.begin(), CutEdges.end());
     auto CEDel = std::unique(CutEdges.begin(), CutEdges.end());
     CutEdges.erase(CEDel, CutEdges.end());
+    dfy::ExportCut("./debug.obj", M, CutEdges);
     if (CLIArgs.Verbosity > 1)
     {
         std::cout << "Cut computed in ";
@@ -145,11 +147,6 @@ int main(int argc, const char* const argv[])
 
     // Realize cut and unwrap
     StartTimer();
-    if (!Seg.IsValidCut(CutEdges))
-    {
-        std::cerr << "Computed cut is invalid." << std::endl;
-        return EXIT_FAILURE;
-    }
     Eigen::MatrixXd UV;
     dfy::Mesh CM = M.CutEdges(CutEdges);
     if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::TUTTE)

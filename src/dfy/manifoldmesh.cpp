@@ -12,6 +12,8 @@
 
 #include <igl/cut_mesh.h>
 
+#include <queue>
+
 
 dfy::ManifoldMesh::ManifoldMesh(const Eigen::MatrixXd& Verts,
                                 const Eigen::MatrixXi& Tris)
@@ -179,4 +181,71 @@ void dfy::ManifoldMesh::InitManifoldMesh()
             m_T2T(i, j) = t;
         }
     }
+}
+
+
+void dfy::ManifoldMesh::FlipTriangle(int i)
+{
+    dfy::Mesh::FlipTriangle(i);
+    std::swap(m_T2E(i, 0), m_T2E(i, 1));
+    std::swap(m_T2T(i, 0), m_T2T(i, 1));
+}
+
+void dfy::ManifoldMesh::FixFaceOrientation()
+{
+    std::vector<bool> Fixed;
+    Fixed.resize(NumTriangles());
+
+    std::queue<int> Q;
+    Q.emplace(0);
+    while (!Q.empty())
+    {
+        int CurFace = Q.front();
+        Q.pop();
+
+        if (Fixed[CurFace])
+            continue;
+        Fixed[CurFace] = true;
+
+        Eigen::Vector3i Flip;
+        Flip.setZero();
+        for (int j = 0; j < 3; ++j)
+        {
+            int NextFace = TriTriAdj()(CurFace, j);
+            if (NextFace < 0)
+                continue;
+            std::pair<int, int> CurE{ Triangles()(CurFace, (j + 1) % 3), 
+                                      Triangles()(CurFace, (j + 2) % 3) };
+            std::pair<int, int> NextE;
+            for (int k = 0; k < 3; ++k)
+            {
+                if (TriTriAdj()(NextFace, k) != CurFace)
+                    continue;
+                NextE.first = Triangles()(NextFace, (k + 1) % 3);
+                NextE.second = Triangles()(NextFace, (k + 2) % 3);
+            }
+            // If shared edge has same orientation, we have to flip the triangle
+            if (CurE == NextE)
+                Flip[j] = 1;
+            Q.emplace(NextFace);
+        }
+
+        for (int j = 0; j < 3; ++j)
+        {
+            if (Flip[j] == 0)
+                continue;
+            FlipTriangle(TriTriAdj()(CurFace, j));
+        }
+    }
+
+    // Try estimating inside-outside to check if all faces are oriented outside
+    Eigen::RowVector3d Center = FaceBarycs().colwise().mean();
+    Eigen::MatrixXd GoInside = FaceBarycs() - Center.replicate(NumTriangles(), 1);
+    Eigen::VectorXi DotProds(NumTriangles());
+    for (int i = 0; i < NumTriangles(); ++i)
+        DotProds(i) = GoInside.row(i).dot(Normals().row(i)) < 0 ? 1 : -1;
+    if (DotProds.sum() < 0)
+        return;
+    for (int i = 0; i < NumTriangles(); ++i)
+        FlipTriangle(i);
 }

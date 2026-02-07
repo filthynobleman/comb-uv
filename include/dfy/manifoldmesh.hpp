@@ -58,6 +58,9 @@ public:
     dfy::Mesh CutEdges(const std::vector<int>& EdgeVec) const;
     dfy::Mesh CutEdges(const std::vector<bool>& EdgeFlags) const;
     dfy::Mesh CutEdges(const Eigen::VectorXi& EdgeFlags) const;
+
+    virtual void FlipTriangle(int i) override;
+    void FixFaceOrientation();
 };
 
 

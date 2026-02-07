@@ -79,6 +79,8 @@ public:
     const Eigen::MatrixXd& FaceAngles() const;
     const Eigen::MatrixXd& FaceBarycs() const;
 
+    virtual void FlipTriangle(int i);
+
 
     dfy::Mesh SubMesh(const std::vector<int>& Indices,
                       dfy::SubMeshAccessType AccType,
