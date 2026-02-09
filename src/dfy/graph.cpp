@@ -488,7 +488,10 @@ double dfy::GeodesicDistance(const dfy::ManifoldMesh &M, int i, int j)
     // bj = (j1 + j2 + j3) / 3 = (j1 + i3 + i2) / 3
     // bi - bj = (i1 - j1) / 3
     // || bi - bj || = || i1 - j1 || / 3
-    return std::sqrt(a * a + b * b - 2 * a * b * std::cos(theta)) / 3.0;
+    double d = std::sqrt(a * a + b * b - 2 * a * b * std::cos(theta)) / 3.0;
+    if (std::isnan(d))
+        return dfy::DualEuclideanDistance(M, i, j);
+    return d;
 }
 
 double dfy::ConstantDistance(const dfy::Mesh &, int i, int j)

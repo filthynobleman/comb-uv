@@ -158,7 +158,6 @@ void CutAndParametrize(const dfy::ManifoldMesh& M,
         else
             EWeights[e] = 2.0 - dfy::DualAngularDistance(M, i, j);
     }
-    std::cout << EWeights.minCoeff() << std::endl;
     Seg.CutToDisk(CutEdges, EWeights);
     std::sort(CutEdges.begin(), CutEdges.end());
     auto CEDel = std::unique(CutEdges.begin(), CutEdges.end());
