@@ -50,25 +50,50 @@ double StopTimer();
 void StartGlobalTimer();
 double StopGlobalTimer();
 
-
-int main(int argc, const char* const argv[])
+void Parametrize(const dfy::ManifoldMesh& M,
+                 Eigen::MatrixXd& UV,
+                 Eigen::MatrixXi& TUV)
 {
-    ParseArgs(argc, argv);
-
-    // Load mesh
     StartTimer();
-    dfy::ManifoldMesh M(CLIArgs.InputFile);
-    M.FixFaceOrientation();
+    if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::TUTTE)
+    {
+        dfy::TutteEmbedding Emb(M);
+        Emb.MapBoundary(dfy::BoundaryMap::SQUARE);
+        Emb.Compute();
+        UV = Emb.UV();
+    }
+    else if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::HARMONIC)
+    {
+        dfy::HarmonicEmbedding Emb(M);
+        Emb.MapBoundary(dfy::BoundaryMap::SQUARE);
+        Emb.Compute();
+        UV = Emb.UV();
+    }
+    else if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::CONFORMAL)
+    {
+        dfy::ConformalEmbedding Emb(M);
+        Emb.Compute();
+        UV = Emb.UV();
+    }
+    else if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::ARAP)
+    {
+        dfy::ARAPEmbedding Emb(M);
+        Emb.Compute();
+        UV = Emb.UV();
+    }
+    TUV = M.Triangles();
     if (CLIArgs.Verbosity > 1)
     {
-        std::cout << "Loaded mesh " << CLIArgs.InputFile;
-        std::cout << " in " << StopTimer() << " seconds.";
+        std::cout << "Computed embedding in ";
+        std::cout << StopTimer() << " seconds.";
         std::cout << std::endl;
     }
+}
 
-    // Start global timer
-    StartGlobalTimer();
-
+void CutAndParametrize(const dfy::ManifoldMesh& M,
+                       Eigen::MatrixXd& UV,
+                       Eigen::MatrixXi& TUV)
+{
     // Compute dual graph
     StartTimer();
     dfy::DM2GDist GMetric = dfy::DualAngularDistance;
@@ -137,7 +162,6 @@ int main(int argc, const char* const argv[])
     std::sort(CutEdges.begin(), CutEdges.end());
     auto CEDel = std::unique(CutEdges.begin(), CutEdges.end());
     CutEdges.erase(CEDel, CutEdges.end());
-    dfy::ExportCut("./debug.obj", M, CutEdges);
     if (CLIArgs.Verbosity > 1)
     {
         std::cout << "Cut computed in ";
@@ -147,7 +171,6 @@ int main(int argc, const char* const argv[])
 
     // Realize cut and unwrap
     StartTimer();
-    Eigen::MatrixXd UV;
     dfy::Mesh CM = M.CutEdges(CutEdges);
     if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::TUTTE)
     {
@@ -175,17 +198,45 @@ int main(int argc, const char* const argv[])
         Emb.Compute();
         UV = Emb.UV();
     }
+    TUV = CM.Triangles();
     if (CLIArgs.Verbosity > 1)
     {
         std::cout << "Computed embedding in ";
         std::cout << StopTimer() << " seconds.";
         std::cout << std::endl;
     }
+}
+
+
+int main(int argc, const char* const argv[])
+{
+    ParseArgs(argc, argv);
+
+    // Load mesh
+    StartTimer();
+    dfy::ManifoldMesh M(CLIArgs.InputFile);
+    M.FixFaceOrientation();
+    if (CLIArgs.Verbosity > 1)
+    {
+        std::cout << "Loaded mesh " << CLIArgs.InputFile;
+        std::cout << " in " << StopTimer() << " seconds.";
+        std::cout << std::endl;
+    }
+
+    // Start global timer
+    StartGlobalTimer();
+
+    Eigen::MatrixXd UV;
+    Eigen::MatrixXi TUV;
+    if (M.IsDisk())
+        Parametrize(M, UV, TUV);
+    else
+        CutAndParametrize(M, UV, TUV);
 
     double Runtime = StopGlobalTimer();
 
     StartTimer();
-    dfy::ExportMesh(CLIArgs.OutputFile, M, UV, CM.Triangles(), CLIArgs.SmoothNormals);
+    dfy::ExportMesh(CLIArgs.OutputFile, M, UV, TUV, CLIArgs.SmoothNormals);
     if (CLIArgs.Verbosity > 1)
     {
         std::cout << "Mesh exported to " << CLIArgs.OutputFile << " in ";

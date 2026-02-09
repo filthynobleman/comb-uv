@@ -61,6 +61,8 @@ public:
 
     virtual void FlipTriangle(int i) override;
     void FixFaceOrientation();
+
+    bool IsDisk() const;
 };
 
 

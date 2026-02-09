@@ -69,9 +69,10 @@ void dfy::Sampler::AddSample(int NewSample)
     std::priority_queue<std::pair<double, int>,
                         std::vector<std::pair<double, int>>,
                         std::greater<std::pair<double, int>>> Q;
-    m_Distances[NewSample] = 0;
+    // Let's be sure this specific sample will NEVER be kept again
+    m_Distances[NewSample] = -1;
     m_Partitions[NewSample] = NumSamples();
-    Q.emplace(0, NewSample);
+    Q.emplace(m_Distances[NewSample], NewSample);
     while (!Q.empty())
     {
         std::pair<double, int> Next = Q.top();
@@ -82,6 +83,7 @@ void dfy::Sampler::AddSample(int NewSample)
 
         if (W < m_HDists->GetKey(Cur))
             m_HDists->SetKey(Cur, W);
+        W = std::max(0.0, W);
 
         int Deg = m_G.NumAdjacents(Cur);
         for (int j = 0; j < Deg; ++j)

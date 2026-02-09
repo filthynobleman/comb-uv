@@ -77,7 +77,6 @@ void dfy::Segmentation::MakeAllDisks(int SubSamples)
         Changes = false;
         Eigen::VectorXi NewParts = m_Partitions;
         int NewNumRegs = NumRegions();
-        #pragma omp parallel for
         for (int rid = 0; rid < NumRegions(); ++rid)
         {
             const auto& r = GetRegion(rid);
@@ -88,6 +87,24 @@ void dfy::Segmentation::MakeAllDisks(int SubSamples)
             std::vector<int> RFaces;
             r.Faces(RFaces);
             dfy::Graph SG = m_Graph.SubGraph(RFaces);
+            // First, check connected components are not creating issues
+            std::vector<int> SGCC = SG.ConnectedComponents();
+            int NCC = 0;
+            for (int cc : SGCC)
+                NCC = std::max(cc + 1, NCC);
+            // If we have multiple connected components, just separate
+            if (NCC > 1)
+            {
+                for (int i = 0; i < RFaces.size(); ++i)
+                {
+                    if (SGCC[i] == 0)
+                        continue;
+                    NewParts[RFaces[i]] = NewNumRegs + SGCC[i] - 1;
+                }
+                NewNumRegs += NCC - 1;
+                continue;
+            }
+            // Otherwise, break by sampling
             dfy::Sampler Smpl(SG);
             while (Smpl.NumSamples() < std::min(SubSamples, SG.NumNodes()))
                 Smpl.AddSample();
@@ -99,6 +116,7 @@ void dfy::Segmentation::MakeAllDisks(int SubSamples)
             }
             NewNumRegs += Smpl.NumSamples() - 1;
         }
+
 
         if (Changes)
             ComputeRegions(NewParts);

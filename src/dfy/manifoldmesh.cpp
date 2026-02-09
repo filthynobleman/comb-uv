@@ -249,3 +249,9 @@ void dfy::ManifoldMesh::FixFaceOrientation()
     for (int i = 0; i < NumTriangles(); ++i)
         FlipTriangle(i);
 }
+
+bool dfy::ManifoldMesh::IsDisk() const
+{
+    int EC = NumVertices() - NumEdges() + NumTriangles();
+    return EC == 1;
+}

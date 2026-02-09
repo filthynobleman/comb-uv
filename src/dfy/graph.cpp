@@ -22,6 +22,12 @@ dfy::Graph::Graph(const std::vector<std::pair<int, int>>& Edges,
     for (int i = 0; i < Edges.size(); ++i)
     {
         std::pair<int, int> e = Edges[i];
+        // We don't care about self-edges
+        if (e.first == e.second)
+        {
+            nNodes = std::max(nNodes, e.first + 1);
+            continue;
+        }
         double w = 1.0;
         if (!Weights.empty())
             w = Weights[i];
@@ -312,6 +318,8 @@ dfy::Graph dfy::Graph::SubGraph(const std::vector<int> &Indices) const
         int iOld = it.first;
         int iNew = it.second;
         int nadj = NumAdjacents(iOld);
+        // To ensure we don't fuck up disconnected components
+        bool Isolated = true;
         for (int jj = 0; jj < nadj; ++jj)
         {
             int jOld;
@@ -319,9 +327,15 @@ dfy::Graph dfy::Graph::SubGraph(const std::vector<int> &Indices) const
             std::tie(jOld, w) = GetAdjacent(iOld, jj);
             if (IdxInv.find(jOld) == IdxInv.end())
                 continue;
+            Isolated = false;
             int jNew = IdxInv[jOld];
             Edges.emplace_back(iNew, jNew);
             Weights.emplace_back(w);
+        }
+        if (Isolated)
+        {
+            Edges.emplace_back(iNew, iNew);
+            Weights.emplace_back(std::numeric_limits<double>::infinity());
         }
     }
 
