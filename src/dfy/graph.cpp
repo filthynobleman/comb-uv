@@ -458,44 +458,37 @@ double dfy::DualAngularDistance(const dfy::ManifoldMesh &M, int i, int j)
 
 double dfy::GeodesicDistance(const dfy::ManifoldMesh &M, int i, int j)
 {
-    int k1 = 0;
-    for (k1 = 0; k1 < 3; ++k1)
+    int i1, i2, i3;
+    for (i1 = 0; i1 < 3; ++i1)
     {
-        if (M.TriTriAdj()(i, k1) == j)
-            break;
+        if (M.TriTriAdj()(i, i1) == j)
+        {
+            i2 = (i1 + 1) % 3;
+            i3 = (i1 + 2) % 3;
+        }
     }
-    k1++;
-    if (k1 > 2)
-        k1 = 0;
-    int k1next = k1 + 1;
-    if (k1next > 2)
-        k1next = 0;
-    
-    int k2 = 0;
-    for (k2 = 0; k2 < 3; ++k2)
+    int j1, j2, j3;
+    for (j1 = 0; j1 < 3; ++j1)
     {
-        if (M.TriTriAdj()(j, k2) == i)
-            break;
+        if (M.TriTriAdj()(j, j1) == i)
+        {
+            j2 = (j1 + 1) % 3;
+            j3 = (j1 + 2) % 3;
+        }
     }
-    k2--;
-    if (k2 < 0)
-        k2 = 2;
-    
-    // Get edges
-    Eigen::Vector3d ab = M.FaceBarycs().row(i) - M.Vertices().row(M.Triangles()(i, k1));
-    Eigen::Vector3d ac = M.FaceBarycs().row(j) - M.Vertices().row(M.Triangles()(j, k2));
-    Eigen::Vector3d aa = (M.Vertices().row(M.Triangles()(i, k1next)) - M.Vertices().row(M.Triangles()(i, k1)));
-    aa.normalize();
-    // Get edge lengths
-    double ablen = ab.norm();
-    ab /= ablen;
-    double aclen = ac.norm();
-    ac /= aclen;
-    // Get angles
-    double abtheta = std::acos(ab.dot(aa));
-    double actheta = std::acos(ac.dot(aa));
-    // Use cosine formula
-    return std::sqrt(ablen * ablen + aclen * aclen - 2 * ablen * aclen * std::cos(abtheta + actheta));
+    //   i3-j2
+    //  /  |  \
+    // i1  |  j1
+    //  \  |  /
+    //   i2|j3
+    double theta = M.FaceAngles()(i, i2) + M.FaceAngles()(j, j3);
+    double a = M.EdgeLengths()(i, i3);
+    double b = M.EdgeLengths()(j, j2);
+    // bi = (i1 + i2 + i3) / 3;
+    // bj = (j1 + j2 + j3) / 3 = (j1 + i3 + i2) / 3
+    // bi - bj = (i1 - j1) / 3
+    // || bi - bj || = || i1 - j1 || / 3
+    return std::sqrt(a * a + b * b - 2 * a * b * std::cos(theta)) / 3.0;
 }
 
 double dfy::ConstantDistance(const dfy::Mesh &, int i, int j)
