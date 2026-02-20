@@ -21,6 +21,14 @@
 #include <filesystem>
 
 
+enum GraphMetric
+{
+    EUCLIDEAN,
+    GEODESIC,
+    ANGULAR
+};
+
+
 struct 
 {
     std::string InputFile;
@@ -29,6 +37,7 @@ struct
     int SubSamples;
     double Threshold;
     dfy::UVMapAlgorithm Algorithm;
+    GraphMetric Metric;
     bool Packing;
     bool SmoothNormals;
 
@@ -52,6 +61,7 @@ int main(int argc, const char* const argv[])
     // Load mesh
     StartTimer();
     dfy::ManifoldMesh M(CLIArgs.InputFile);
+    M.FixFaceOrientation();
     if (CLIArgs.Verbosity > 1)
     {
         std::cout << "Loaded mesh " << CLIArgs.InputFile;
@@ -64,7 +74,21 @@ int main(int argc, const char* const argv[])
 
     // Compute dual graph
     StartTimer();
-    dfy::Graph G = dfy::DualMeshToGraph(M, dfy::GeodesicDistance);
+    dfy::DM2GDist GMetric = dfy::DualAngularDistance;
+    switch (CLIArgs.Metric)
+    {
+    case GraphMetric::EUCLIDEAN:
+        GMetric = dfy::DualEuclideanDistance;
+        break;
+
+    case GraphMetric::GEODESIC:
+        GMetric = dfy::GeodesicDistance;
+        break;
+    
+    default:
+        break;
+    }
+    dfy::Graph G = dfy::DualMeshToGraph(M, GMetric);
     if (CLIArgs.Verbosity > 1)
     {
         std::cout << "Dual graph computed in ";
@@ -75,6 +99,7 @@ int main(int argc, const char* const argv[])
     // Voronoi decomposition
     StartTimer();
     dfy::Sampler Smpl(G);
+    CLIArgs.StartSamples = std::max(CLIArgs.StartSamples, 4 * M.Genus());
     Smpl.AddSamples(std::min(CLIArgs.StartSamples, G.NumNodes()) - 1);
     if (CLIArgs.Verbosity > 1)
     {
@@ -98,7 +123,10 @@ int main(int argc, const char* const argv[])
 
     // Merge disks
     StartTimer();
-    Seg.MergeRegions(dfy::MinPerimeterScore, CLIArgs.Threshold);
+    if (CLIArgs.Metric != GraphMetric::ANGULAR)
+        Seg.MergeRegions(dfy::MinPerimeterScore, CLIArgs.Threshold);
+    else
+        Seg.MergeRegions(dfy::MaxAvgDihedralAngle, CLIArgs.Threshold);
     if (CLIArgs.Verbosity > 1)
     {
         std::cout << "Merged regions in ";
@@ -190,6 +218,7 @@ void ParseArgs(int argc, const char *const argv[])
 {
     CLIArgs.InputFile = "../samples/bunny.obj";
     CLIArgs.Algorithm = dfy::UVMapAlgorithm::TUTTE;
+    CLIArgs.Metric = GraphMetric::GEODESIC;
     CLIArgs.StartSamples = 5;
     CLIArgs.SubSamples = 5;
     CLIArgs.Threshold = 0.76;
@@ -273,6 +302,27 @@ void ParseArgs(int argc, const char *const argv[])
                 std::cerr << std::endl;
                 exit(EXIT_FAILURE);
                 Usage(argv[0]);
+            }
+        }
+        // Graph metric
+        if (Argvi == "-m" || Argvi == "--metric")
+        {
+            std::string Metric = argv[++i];
+            std::transform(Metric.begin(), Metric.end(), Metric.begin(),
+                           [](unsigned char c) { return std::tolower(c); });
+            if (Metric == "angular")
+                CLIArgs.Metric = GraphMetric::ANGULAR;
+            else if (Metric == "geodesic")
+                CLIArgs.Metric = GraphMetric::GEODESIC;
+            else if (Metric == "euclidean")
+                CLIArgs.Metric = GraphMetric::EUCLIDEAN;
+            else
+            {
+                std::cerr << "Specified graph metric \"";
+                std::cerr << Metric << "\" is not a valid option.";
+                std::cerr << std::endl;
+                Usage(argv[0]);
+                exit(EXIT_FAILURE);
             }
         }
         // Output mesh

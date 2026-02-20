@@ -11,6 +11,7 @@
 #include <dfy/utils.hpp>
 
 #include <igl/cut_mesh.h>
+#include <igl/boundary_loop.h>
 
 #include <queue>
 
@@ -252,6 +253,20 @@ void dfy::ManifoldMesh::FixFaceOrientation()
 
 bool dfy::ManifoldMesh::IsDisk() const
 {
-    int EC = NumVertices() - NumEdges() + NumTriangles();
-    return EC == 1;
+    return EulerCharacteristic() == 1;
+}
+
+int dfy::ManifoldMesh::EulerCharacteristic() const
+{
+    return NumVertices() - NumEdges() + NumTriangles();
+}
+
+int dfy::ManifoldMesh::Genus() const
+{
+    std::vector<std::vector<int>> BLoops;
+    igl::boundary_loop(Triangles(), BLoops);
+
+    // EC = 2 - 2 * G - #B
+    // 2 * G = 2 - EC - #B
+    return (2 - EulerCharacteristic() - (int)(BLoops.size())) / 2;
 }

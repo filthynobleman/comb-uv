@@ -74,6 +74,7 @@ void dfy::Segmentation::MakeAllDisks(int SubSamples)
     bool Changes = true;
     while (Changes)
     {
+        // std::cout << NumRegions() << std::endl;
         Changes = false;
         Eigen::VectorXi NewParts = m_Partitions;
         int NewNumRegs = NumRegions();
@@ -207,112 +208,6 @@ void dfy::Segmentation::MergeRegions(dfy::MergeScore ScoreFun,
         SomethingMerged = true;
         G = DualGraph();
     } while(SomethingMerged);
-}
-
-bool dfy::Segmentation::IsValidCut(const std::vector<int> &EdgeCuts)
-{
-    // Build vertex-edge adjacency
-    std::vector<std::vector<int>> V2E;
-    V2E.resize(m_Mesh.NumVertices());
-    for (auto& l : V2E)
-        l.reserve(10);
-    for (int i = 0; i < m_Mesh.NumEdges(); ++i)
-    {
-        for (int j = 0; j < 2; ++j)
-            V2E[m_Mesh.Edges()(i, j)].push_back(i);
-    }
-
-    // Build edge-edge adjacency
-    std::vector<std::vector<int>> E2E;
-    E2E.resize(m_Mesh.NumEdges());
-    for (auto& l : E2E)
-        l.reserve(10);
-    for (int i = 0; i < m_Mesh.NumVertices(); ++i)
-    {
-        for (int j = 0; j < V2E[i].size(); ++j)
-        {
-            for (int k = j + 1; k < V2E[i].size(); ++k)
-            {
-                E2E[V2E[i][j]].push_back(V2E[i][k]);
-                E2E[V2E[i][k]].push_back(V2E[i][j]);
-            }
-        }
-    }
-
-    // Build cut mask
-    std::vector<bool> IsCut;
-    IsCut.resize(m_Mesh.NumEdges(), false);
-    for (int e : EdgeCuts)
-        IsCut[e] = true;
-    
-    
-    dfy::ExportCut("./cut.obj", m_Mesh, EdgeCuts);
-
-    // Validity condition #1
-    // Cut an edge iff at least an adjacent edge is to cut
-    // In the meantime, find an edge that has only a single
-    // neighboring edge to cut
-    std::vector<int> NNeighs;
-    NNeighs.resize(m_Mesh.NumEdges(), 0);
-    for (int e1 : EdgeCuts)
-    {
-        for (int e2 : E2E[e1])
-        {
-            if (IsCut[e2])
-                NNeighs[e1]++;
-        }
-        if (NNeighs[e1] == 0)
-            return false;
-    }
-    std::cout << "Passed condition #1" << std::endl;
-
-    // Validity condition #2
-    // Resulting mesh after the cut must have disk-topology
-    // Count how many vertices are added
-    int NNewVerts = 0;
-    std::vector<bool> Visited;
-    Visited.resize(m_Mesh.NumEdges(), false);
-    for (int ERoot : EdgeCuts)
-    {
-        if (Visited[ERoot])
-            continue;
-        if (NNeighs[ERoot] != 1)
-            continue;
-        std::stack<int> S;
-        S.push(ERoot);
-        while (!S.empty())
-        {
-            int ECur = S.top();
-            S.pop();
-            Visited[ECur] = true;
-
-            for (int ENext : E2E[ECur])
-            {
-                // We walk along the cut, so we ignore non-cut edges
-                if (!IsCut[ENext])
-                    continue;
-                // Walking along a cut, we add a new vertex only
-                // when we make a step from an edge to another
-                if (!Visited[ENext])
-                {
-                    NNewVerts++;
-                    S.push(ENext);
-                }
-            }
-        }
-    }
-    int EC = m_Mesh.NumVertices() + NNewVerts + 
-             m_Mesh.NumTriangles() -
-             m_Mesh.NumEdges() - EdgeCuts.size();
-    std::cout << EC << std::endl;
-    std::cout << NNewVerts << std::endl;
-    std::cout << EdgeCuts.size() << std::endl;
-    if (EC != 1)
-        return false;
-    std::cout << "Passed condition #2" << std::endl;
-
-    // If all tests are passed, cut is valid
-    return true;
 }
 
 void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut)
@@ -470,4 +365,17 @@ double dfy::MinPerimeterScore(const dfy::ManifoldMesh &M,
     double Eij = M.EdgeLengths()(FID).sum();
 
     return Eij / std::sqrt(std::max(Ai, Aj));
+}
+
+double dfy::MaxAvgDihedralAngle(const dfy::ManifoldMesh &M, 
+                                const dfy::Region &Ri, 
+                                const dfy::Region &Rj)
+{
+    std::vector<int> EID;
+    auto Rij = dfy::LineIntersection(Ri, Rj);
+    Rij.Edges(EID);
+    double TotDihedral = 0.0;
+    for (int e : EID)
+        TotDihedral += dfy::DualAngularDistance(M, M.EdgeTriAdj()(e, 0), M.EdgeTriAdj()(e, 1));
+    return 2.0 - (TotDihedral / EID.size());
 }

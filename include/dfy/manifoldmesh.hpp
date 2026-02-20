@@ -63,6 +63,9 @@ public:
     void FixFaceOrientation();
 
     bool IsDisk() const;
+
+    int EulerCharacteristic() const;
+    int Genus() const;
 };
 
 

@@ -46,7 +46,6 @@ public:
     void MakeAllDisks(int SubSamples);
     void MergeRegions(dfy::MergeScore ScoreFun,
                       double Threshold);
-    bool IsValidCut(const std::vector<int>& EdgeCuts);
     void CutToDisk(std::vector<int>& EdgeCuts,
                    const Eigen::VectorXd& EdgeWeights);
     void CutToDisk(std::vector<int>& EdgeCut);
@@ -57,6 +56,10 @@ public:
 double MinPerimeterScore(const dfy::ManifoldMesh& M,
                          const dfy::Region& Ri,
                          const dfy::Region& Rj);
+
+double MaxAvgDihedralAngle(const dfy::ManifoldMesh& M,
+                           const dfy::Region& Ri,
+                           const dfy::Region& Rj);
 
 
 } // namespace dfy
