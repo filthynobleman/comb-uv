@@ -12,8 +12,15 @@
 
 #include <igl/cut_mesh.h>
 #include <igl/boundary_loop.h>
+#include <igl/gaussian_curvature.h>
+#include <igl/massmatrix.h>
+#include <igl/cotmatrix.h>
+#include <igl/invert_diag.h>
 
 #include <queue>
+
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 
 dfy::ManifoldMesh::ManifoldMesh(const Eigen::MatrixXd& Verts,
@@ -37,6 +44,9 @@ dfy::ManifoldMesh::ManifoldMesh(const dfy::ManifoldMesh& M)
     m_E2T = M.m_E2T;
     m_T2E = M.m_T2E;
     m_T2T = M.m_T2T;
+    m_GC = M.m_GC;
+    m_MC = M.m_MC;
+    m_VA = M.m_VA;
 }
 
 dfy::ManifoldMesh::ManifoldMesh(dfy::ManifoldMesh&& M)
@@ -47,6 +57,9 @@ dfy::ManifoldMesh::ManifoldMesh(dfy::ManifoldMesh&& M)
     m_E2T = std::move(M.m_E2T);
     m_T2E = std::move(M.m_T2E);
     m_T2T = std::move(M.m_T2T);
+    m_GC = std::move(M.m_GC);
+    m_MC = std::move(M.m_MC);
+    m_VA = std::move(M.m_VA);
 }
 
 dfy::ManifoldMesh& dfy::ManifoldMesh::operator=(const dfy::ManifoldMesh& M)
@@ -57,6 +70,9 @@ dfy::ManifoldMesh& dfy::ManifoldMesh::operator=(const dfy::ManifoldMesh& M)
     m_E2T = M.m_E2T;
     m_T2E = M.m_T2E;
     m_T2T = M.m_T2T;
+    m_GC = M.m_GC;
+    m_MC = M.m_MC;
+    m_VA = M.m_VA;
     return *this;
 }
 
@@ -68,6 +84,9 @@ dfy::ManifoldMesh& dfy::ManifoldMesh::operator=(dfy::ManifoldMesh&& M)
     m_E2T = std::move(M.m_E2T);
     m_T2E = std::move(M.m_T2E);
     m_T2T = std::move(M.m_T2T);
+    m_GC = std::move(M.m_GC);
+    m_MC = std::move(M.m_MC);
+    m_VA = std::move(M.m_VA);
     return *this;
 }
 
@@ -79,6 +98,9 @@ const Eigen::VectorXd &dfy::ManifoldMesh::EdgeLengths() const { return m_EL; }
 const Eigen::MatrixXi &dfy::ManifoldMesh::EdgeTriAdj() const { return m_E2T; }
 const Eigen::MatrixXi &dfy::ManifoldMesh::TriEdgeAdj() const { return m_T2E; }
 const Eigen::MatrixXi &dfy::ManifoldMesh::TriTriAdj() const { return m_T2T; }
+const Eigen::VectorXd &dfy::ManifoldMesh::GaussianCurvature() const { return m_GC; }
+const Eigen::VectorXd &dfy::ManifoldMesh::MeanCurvature() const { return m_MC; }
+const Eigen::VectorXd &dfy::ManifoldMesh::VertexDualArea() const { return m_VA; }
 
 Eigen::MatrixXd dfy::ManifoldMesh::EdgeCenters() const
 {
@@ -182,6 +204,24 @@ void dfy::ManifoldMesh::InitManifoldMesh()
             m_T2T(i, j) = t;
         }
     }
+
+    // Compute gaussian curvature
+    igl::gaussian_curvature(Vertices(), Triangles(), m_GC);
+
+    // Vertex dual area
+    Eigen::SparseMatrix<double> Mass;
+    igl::massmatrix(Vertices(), Triangles(), igl::MASSMATRIX_TYPE_VORONOI, Mass);
+    m_VA = Mass.diagonal();
+
+    // Mean curvature
+    Eigen::SparseMatrix<double> L;
+    Eigen::SparseMatrix<double> Minv;
+    igl::invert_diag(Mass, Minv);
+    igl::cotmatrix(Vertices(), Triangles(), L);
+    Eigen::MatrixXd HN = -Minv * (L * Vertices());
+    m_MC.resize(NumVertices());
+    for (int i = 0; i < NumVertices(); ++i)
+        m_MC[i] = HN.row(i).dot(VertNormals().row(i));
 }
 
 

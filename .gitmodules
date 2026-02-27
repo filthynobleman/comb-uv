@@ -7,3 +7,6 @@
 [submodule "ext/stb"]
 	path = ext/stb
 	url = https://github.com/nothings/stb.git
+[submodule "ext/polyscope"]
+	path = ext/polyscope
+	url = https://github.com/nmwsharp/polyscope.git

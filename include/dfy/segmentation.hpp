@@ -61,5 +61,9 @@ double MaxAvgDihedralAngle(const dfy::ManifoldMesh& M,
                            const dfy::Region& Ri,
                            const dfy::Region& Rj);
 
+double MaxAvgCurvature(const dfy::ManifoldMesh& M,
+                       const dfy::Region& Ri,
+                       const dfy::Region& Rj);
+
 
 } // namespace dfy

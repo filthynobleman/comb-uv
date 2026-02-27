@@ -171,11 +171,16 @@ void dfy::Segmentation::MergeRegions(dfy::MergeScore ScoreFun,
                 if (j < i)
                     continue;
                 dfy::Region Intersection = dfy::LineIntersection(m_Regions[i], m_Regions[j]);
+                if (Intersection.NumEdges() == 0)
+                    continue;
                 if (Intersection.EulerCharacteristic() != 1)
                     continue;
                 double Score = ScoreFun(m_Mesh, m_Regions[i], m_Regions[j]);
                 if (Score < Threshold)
+                {
+                    // std::cout << Score << std::endl;
                     continue;
+                }
                 std::pair<int, int> ij{ i, j };
                 Q.emplace(Score, ij);
             }
@@ -206,7 +211,15 @@ void dfy::Segmentation::MergeRegions(dfy::MergeScore ScoreFun,
 
 
         SomethingMerged = true;
-        G = DualGraph();
+        try
+        {
+            G.CollapseEdge(i, j);
+        }
+        catch (std::exception& e)
+        {
+            std::cerr << e.what() << std::endl;
+            exit(EXIT_FAILURE);
+        }
     } while(SomethingMerged);
 }
 
@@ -254,7 +267,8 @@ void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut,
                 continue;
             }
             // With multiple segments, we first need the connected components
-            // Build vertex-edge adjacency; each vertex has AT MOST 2 neighboring edges
+            // Build vertex-edge adjacency
+            // We are on a boundary component (a line), so each vertex has AT MOST 2 neighboring edges
             Rij.Vertices(Vij);
             std::map<int, std::pair<int, int>> V2E;
             std::pair<int, int> MinusOne{ -1, -1 };
@@ -277,7 +291,8 @@ void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut,
                     V2E[v].second = k;
             }
             // std::cout << "V2E built" << std::endl;
-            // Build edge-edge graph; each edge has AT MOST 2 neighboring edges
+            // Build edge-edge graph
+            // We are on a boundary component (a line), so each edge has AT MOST 2 neighboring edges
             std::vector<std::pair<int, int>> E2E;
             for (auto it : V2E)
             {
@@ -332,7 +347,7 @@ void dfy::Segmentation::CutToDisk(std::vector<int> &EdgeCut,
     dfy::Graph AdjGraph(RegEdges, Weights);
 
     // Get edges in the minimum spanning tree
-    std::vector<std::pair<int, int>> MST = AdjGraph.MinSpanTree();
+    std::vector<std::pair<int, int>> MST = AdjGraph.MaxSpanTree();
 
     // Remove MST edges from potential cuts
     for (auto e : MST)
@@ -367,6 +382,10 @@ double dfy::MinPerimeterScore(const dfy::ManifoldMesh &M,
     return Eij / std::sqrt(std::max(Ai, Aj));
 }
 
+
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 double dfy::MaxAvgDihedralAngle(const dfy::ManifoldMesh &M, 
                                 const dfy::Region &Ri, 
                                 const dfy::Region &Rj)
@@ -376,6 +395,37 @@ double dfy::MaxAvgDihedralAngle(const dfy::ManifoldMesh &M,
     Rij.Edges(EID);
     double TotDihedral = 0.0;
     for (int e : EID)
-        TotDihedral += dfy::DualAngularDistance(M, M.EdgeTriAdj()(e, 0), M.EdgeTriAdj()(e, 1));
-    return 2.0 - (TotDihedral / EID.size());
+    {
+        double Dot = M.FaceNormals().row(M.EdgeTriAdj()(e, 0)).dot(M.FaceNormals().row(M.EdgeTriAdj()(e, 1)));
+        // Clamp to [-1, 1]
+        Dot = std::min(1.0 - 1e-12, std::max(-1.0 + 1e-12, Dot));
+        TotDihedral += std::acos(Dot);
+    }
+    if (TotDihedral < 1e-9)
+        return 0.0;
+    if (EID.size() < 1e-9)
+        return 0.0;
+    // std::cout << (M_PI - TotDihedral / EID.size()) / M_PI * 180 << std::endl;
+    return (M_PI - TotDihedral / EID.size()) / M_PI * 180.0;
+}
+
+double dfy::MaxAvgCurvature(const dfy::ManifoldMesh &M, 
+                            const dfy::Region &Ri, 
+                            const dfy::Region &Rj)
+{
+    std::vector<int> EID;
+    auto Rij = dfy::LineIntersection(Ri, Rj);
+    Rij.Edges(EID);
+    std::vector<int> VID;
+    VID.reserve(2 * EID.size());
+    for (int e : EID)
+    {
+        VID.emplace_back(M.Edges()(e, 0));
+        VID.emplace_back(M.Edges()(e, 1));
+    }
+    std::sort(VID.begin(), VID.end());
+    auto VEnd = std::unique(VID.begin(), VID.end());
+    VID.erase(VEnd, VID.end());
+    double GC = (M.GaussianCurvature()(VID).cwiseAbs() + M.MeanCurvature()(VID).cwiseAbs()).mean();
+    return 1.0 / GC;
 }

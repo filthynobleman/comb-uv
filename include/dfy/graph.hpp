@@ -52,13 +52,15 @@ public:
     int NumAdjacents(int i) const;
     int NumEdges() const;
 
+    void CollapseEdge(int i, int j);
+
     const dfy::WEdge& GetAdjacent(int node_i, int adj_i) const;
     dfy::Path DijkstraPath(int src, int dst) const;
     Eigen::VectorXd DijkstraDistance(int src) const;
     void DijkstraDistance(int src, Eigen::VectorXd& Distances) const;
     Eigen::VectorXd DijkstraDistance(int src, const Eigen::VectorXi& Tag, int Filter) const;
     std::vector<int> ConnectedComponents() const;
-    std::vector<std::pair<int, int>> MinSpanTree() const;
+    std::vector<std::pair<int, int>> MaxSpanTree() const;
 
     dfy::Graph SubGraph(const std::vector<int>& Indices) const;
 };
@@ -73,6 +75,7 @@ double DualEuclideanDistance(const dfy::ManifoldMesh& M, int i, int j);
 double GeodesicDistance(const dfy::ManifoldMesh& M, int i, int j);
 double AngularDistance(const dfy::Mesh& M, int i, int j);
 double DualAngularDistance(const dfy::ManifoldMesh& M, int i, int j);
+double DualCurvatureDistance(const dfy::ManifoldMesh& M, int i, int j);
 double ConstantDistance(const dfy::Mesh&, int i, int j);
 double DualConstantDistance(const dfy::ManifoldMesh&, int i, int j);
 

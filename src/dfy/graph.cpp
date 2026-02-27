@@ -12,6 +12,8 @@
 #include <set>
 #include <queue>
 
+#include <iostream>
+
 
 dfy::Graph::Graph(const std::vector<std::pair<int, int>>& Edges,
                   const std::vector<double>& Weights)
@@ -89,6 +91,186 @@ dfy::Graph::~Graph() { }
 int dfy::Graph::NumNodes() const { return m_Idxs.size() - 1; }
 int dfy::Graph::NumAdjacents(int i) const { return m_Idxs[i + 1] - m_Idxs[i]; }
 int dfy::Graph::NumEdges() const { return m_Adjs.size(); }
+
+void dfy::Graph::CollapseEdge(int i, int j)
+{
+    // Be sure i comes first
+    if (i > j)
+        std::swap(i, j);
+
+    // Get sorted edges and number of nodes
+    std::map<std::pair<int, int>, double> EdgeSet;
+    for (int k = 0; k < NumNodes(); ++k)
+    {
+        int kadjs = NumAdjacents(k);
+        for (int kk = 0; kk < kadjs; ++kk)
+        {
+            int o;
+            double w;
+            std::tie(o, w) = GetAdjacent(k, kk);
+
+            std::pair<int, int> e{ k, o };
+            // If any of the vertices in the edge is j, we replace it with i
+            if (e.first == j)
+                e.first = i;
+            if (e.second == j)
+                e.second = i;
+            // If any of the vertices is greater than j, we decrease the index
+            if (e.first > j)
+                e.first--;
+            if (e.second > j)
+                e.second--;
+            // Now, the edge is added
+            // If edge is new, we just add it
+            if (EdgeSet.find(e) == EdgeSet.end())
+                EdgeSet.emplace(e, 0.0);
+            // We add the current weight to the edge
+            // This is to ensure the edge collapse sums weights for edges
+            // inclusing both i and j
+            EdgeSet[e] += w;
+            // Invert the edge orientation and repeat
+            std::swap(e.first, e.second);
+            if (EdgeSet.find(e) == EdgeSet.end())
+                EdgeSet.emplace(e, 0.0);
+            EdgeSet[e] += w;
+        }
+    }
+
+    // New number of nodes is equal to previous one, but reduced by one
+    int nNodes = NumNodes() - 1;
+
+    // Initialize indices and allocate edge array
+    m_Idxs.clear();
+    m_Adjs.clear();
+    m_Idxs.resize(nNodes + 1);
+    m_Adjs.reserve(EdgeSet.size());
+
+    // Populate adjacency list
+    int CurNode = 0;
+    for (auto ew : EdgeSet)
+    {
+        std::pair<int, int> e = ew.first;
+        double w = ew.second;
+        // If node has changed, we update offsets until
+        // we reach the current node
+        while (CurNode != e.first)
+            m_Idxs[++CurNode] = m_Adjs.size();
+        m_Adjs.emplace_back(e.second, w);
+    }
+    for (CurNode++; CurNode <= nNodes; ++CurNode)
+        m_Idxs[CurNode] = m_Adjs.size();
+    
+    // // Get weight of edge (i, j)
+    // double wij = 0.0;
+    // int jk = -1;
+    // for (int k = 0; k < NumAdjacents(i); ++k)
+    // {
+    //     int jj;
+    //     std::tie(jj, wij) = GetAdjacent(i, k);
+    //     if (jj == j)
+    //     {
+    //         jk = k;
+    //         break;
+    //     }
+    // }
+    // if (jk == -1)
+    // {
+    //     throw std::runtime_error("Nodes not adjacent.");
+    // }
+
+    // // Get new neighborhood by merging
+    // std::map<int, double> NewNeighs;
+    // for (int kk = 0; kk < NumAdjacents(i); ++kk)
+    // {
+    //     NewNeighs.emplace(GetAdjacent(i, kk));
+    // }
+    // for (int kk = 0; kk < NumAdjacents(j); ++kk)
+    // {
+    //     int k;
+    //     double wk;
+    //     std::tie(k, wk) = GetAdjacent(j, kk);
+    //     if (NewNeighs.find(k) == NewNeighs.end())
+    //         NewNeighs.emplace(k, 0.0);
+    //     NewNeighs[k] += wk;
+    // }
+
+    // // Replace weights toward i and j
+    // for (int k = 0; k < NumNodes(); ++k)
+    // {
+    //     // If not connected to i/j, we can skip
+    //     if (NewNeighs.find(k) == NewNeighs.end())
+    //         continue;
+        
+    //     // Weight replacement
+    //     for (int kk = 0; kk < NumAdjacents(k); ++kk)
+    //     {
+    //         if (GetAdjacent(k, kk).first != i && GetAdjacent(k, kk).first != j)
+    //             continue;
+    //         m_Adjs[m_Idxs[k] + kk].second = NewNeighs[k];
+    //     }
+    // }
+
+
+    // // Remove node j
+    // int JAdjs = NumAdjacents(j);
+    // m_Adjs.erase(m_Adjs.begin() + m_Idxs[j], m_Adjs.begin() + m_Idxs[j + 1]);
+    // for (int k = j; k < m_Idxs.size(); ++k)
+    //     m_Idxs[k] -= JAdjs;
+    // m_Idxs.erase(m_Idxs.begin() + j);
+
+    // // Remove all adjacents for node i
+    // int IAdjs = NumAdjacents(i);
+    // m_Adjs.erase(m_Adjs.begin() + m_Idxs[i], m_Adjs.begin() + m_Idxs[i + 1]);
+    // for (int k = i; k < m_Idxs.size(); ++k)
+    //     m_Idxs[k] -= IAdjs;
+
+    // // Add all new ajacents for node i
+    // std::vector<dfy::WEdge> NewIAdjs;
+    // for (auto it : NewNeighs)
+    //     NewIAdjs.emplace_back(it.first, it.second);
+    // m_Adjs.insert(m_Adjs.begin() + m_Idxs[i], NewIAdjs.begin(), NewIAdjs.end());
+    // for (int k = i + 1; k < m_Idxs.size(); ++k)
+    //     m_Idxs[k] += NewIAdjs.size();
+
+    // // Remove/replace all edges toward j
+    // for (int k = 0; k < NumNodes(); ++k)
+    // {
+    //     bool IFound = (k == i);
+    //     for (int kk = 0; kk < NumAdjacents(k); ++kk)
+    //     {
+    //         // We can exploit the fact that i always comes before j
+    //         if (GetAdjacent(k, kk).first == i)
+    //         {
+    //             IFound = true;
+    //             continue;
+    //         }
+
+    //         // Remember to update the indices!
+    //         if (GetAdjacent(k, kk).first < j)
+    //             continue;
+    //         if (GetAdjacent(k, kk).first > j)
+    //         {
+    //             m_Adjs[m_Idxs[k] + kk].first--;
+    //             continue;
+    //         }
+
+    //         // Easy case, just replace j with i
+    //         if (!IFound)
+    //         {
+    //             m_Adjs[m_Idxs[k] + kk].first = i;
+    //             continue;
+    //         }
+
+    //         // Hard one, remove entry and update all indices
+    //         m_Adjs.erase(m_Adjs.begin() + m_Idxs[k] + kk);
+    //         for (int h = k + 1; h < m_Idxs.size(); ++h)
+    //             m_Idxs[h]--;
+    //         // break;
+    //     }
+    // }
+
+    // std::cout << "Good" << std::endl;
+}
 
 const dfy::WEdge &dfy::Graph::GetAdjacent(int node_i, int adj_i) const
 {
@@ -265,7 +447,7 @@ std::vector<int> dfy::Graph::ConnectedComponents() const
     return CC;
 }
 
-std::vector<std::pair<int, int>> dfy::Graph::MinSpanTree() const
+std::vector<std::pair<int, int>> dfy::Graph::MaxSpanTree() const
 {
     std::vector<std::pair<int, int>> MST;
     MST.reserve(NumNodes() - 1);
@@ -451,9 +633,30 @@ double dfy::AngularDistance(const dfy::Mesh &M, int i, int j)
 double dfy::DualAngularDistance(const dfy::ManifoldMesh &M, int i, int j)
 {
     double d = M.FaceNormals().row(i).dot(M.FaceNormals().row(j));
+    if (std::isnan(d) || std::isinf(d))
+        return 0.0;
     return std::min(2.0, std::max(0.0, 1 - d));
     // d = std::min(1.0, std::max(-1.0, d));
     // return std::acos(d);
+}
+
+double dfy::DualCurvatureDistance(const dfy::ManifoldMesh &M, int i, int j)
+{
+    // Get edge
+    int e = -1;
+    for (int ii = 0; ii < 3; ++ii)
+    {
+        if (M.TriTriAdj()(i, ii) == j)
+        {
+            e = ii;
+            break;
+        }
+    }
+    int v1 = M.Edges()(e, 0);
+    int v2 = M.Edges()(e, 1);
+    double c1 = std::abs(M.GaussianCurvature()(v1)) + std::abs(M.MeanCurvature()(v1));
+    double c2 = std::abs(M.GaussianCurvature()(v2)) + std::abs(M.MeanCurvature()(v2));
+    return 0.5 * (c1 + c2);
 }
 
 double dfy::GeodesicDistance(const dfy::ManifoldMesh &M, int i, int j)

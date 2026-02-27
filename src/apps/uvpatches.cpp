@@ -20,6 +20,9 @@
 #include <chrono>
 #include <filesystem>
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 
 enum GraphMetric
 {
@@ -108,7 +111,7 @@ int main(int argc, const char* const argv[])
         std::cout << " samples computed in ";
         std::cout << StopTimer() << " seconds.";
         std::cout << std::endl;
-    } 
+    }
 
     // Disk decomposition
     StartTimer();
@@ -126,7 +129,7 @@ int main(int argc, const char* const argv[])
     if (CLIArgs.Metric != GraphMetric::ANGULAR)
         Seg.MergeRegions(dfy::MinPerimeterScore, CLIArgs.Threshold);
     else
-        Seg.MergeRegions(dfy::MaxAvgDihedralAngle, CLIArgs.Threshold);
+        Seg.MergeRegions(dfy::MaxAvgCurvature, CLIArgs.Threshold);
     if (CLIArgs.Verbosity > 1)
     {
         std::cout << "Merged regions in ";

@@ -1,5 +1,5 @@
 /**
- * @file        diskify.cpp
+ * @file        uvpatches.cpp
  * 
  * @brief       
  * 
@@ -20,6 +20,14 @@
 #include <chrono>
 #include <filesystem>
 
+#include <polyscope/polyscope.h>
+#include <polyscope/surface_mesh.h>
+
+// #include <imgui/imgui.h>
+
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 
 enum GraphMetric
 {
@@ -28,14 +36,17 @@ enum GraphMetric
     ANGULAR
 };
 
+
 struct 
 {
     std::string InputFile;
     std::string OutputFile;
     int StartSamples;
     int SubSamples;
+    double Threshold;
     dfy::UVMapAlgorithm Algorithm;
     GraphMetric Metric;
+    bool Packing;
     bool SmoothNormals;
 
     int Verbosity;
@@ -50,207 +61,85 @@ double StopTimer();
 void StartGlobalTimer();
 double StopGlobalTimer();
 
-void Parametrize(const dfy::ManifoldMesh& M,
-                 Eigen::MatrixXd& UV,
-                 Eigen::MatrixXi& TUV)
-{
-    StartTimer();
-    if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::TUTTE)
-    {
-        dfy::TutteEmbedding Emb(M);
-        Emb.MapBoundary(dfy::BoundaryMap::SQUARE);
-        Emb.Compute();
-        UV = Emb.UV();
-    }
-    else if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::HARMONIC)
-    {
-        dfy::HarmonicEmbedding Emb(M);
-        Emb.MapBoundary(dfy::BoundaryMap::SQUARE);
-        Emb.Compute();
-        UV = Emb.UV();
-    }
-    else if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::CONFORMAL)
-    {
-        dfy::ConformalEmbedding Emb(M);
-        Emb.Compute();
-        UV = Emb.UV();
-    }
-    else if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::ARAP)
-    {
-        dfy::ARAPEmbedding Emb(M);
-        Emb.Compute();
-        UV = Emb.UV();
-    }
-    TUV = M.Triangles();
-    if (CLIArgs.Verbosity > 1)
-    {
-        std::cout << "Computed embedding in ";
-        std::cout << StopTimer() << " seconds.";
-        std::cout << std::endl;
-    }
-}
-
-void CutAndParametrize(const dfy::ManifoldMesh& M,
-                       Eigen::MatrixXd& UV,
-                       Eigen::MatrixXi& TUV)
-{
-    // Compute dual graph
-    StartTimer();
-    dfy::DM2GDist GMetric = dfy::DualAngularDistance;
-    switch (CLIArgs.Metric)
-    {
-    case GraphMetric::EUCLIDEAN:
-        GMetric = dfy::DualEuclideanDistance;
-        break;
-
-    case GraphMetric::GEODESIC:
-        GMetric = dfy::GeodesicDistance;
-        break;
-    
-    default:
-        break;
-    }
-    dfy::Graph G = dfy::DualMeshToGraph(M, GMetric);
-    if (CLIArgs.Verbosity > 1)
-    {
-        std::cout << "Dual graph computed in ";
-        std::cout << StopTimer() << " seconds.";
-        std::cout << std::endl;
-    }
-
-    // Voronoi decomposition
-    StartTimer();
-    dfy::Sampler Smpl(G);
-    Smpl.AddSamples(std::min(CLIArgs.StartSamples, G.NumNodes()) - 1);
-    if (CLIArgs.Verbosity > 1)
-    {
-        std::cout << "Voronoi decomposition with ";
-        std::cout << Smpl.NumSamples();
-        std::cout << " samples computed in ";
-        std::cout << StopTimer() << " seconds.";
-        std::cout << std::endl;
-    } 
-
-    // Disk decomposition
-    StartTimer();
-    dfy::Segmentation Seg(M, G, Smpl.GetPartitions());
-    Seg.MakeAllDisks(CLIArgs.SubSamples);
-    if (CLIArgs.Verbosity > 1)
-    {
-        std::cout << "Disk decomposition computed in ";
-        std::cout << StopTimer() << " seconds.";
-        std::cout << std::endl;
-    }
-
-    // Compute cut
-    StartTimer();
-    std::vector<int> CutEdges;
-    Eigen::VectorXd EWeights;
-    EWeights.resize(M.NumEdges());
-    for (int e = 0; e < M.NumEdges(); ++e)
-    {
-        int i = M.EdgeTriAdj()(e, 0);
-        int j = M.EdgeTriAdj()(e, 1);
-        if (CLIArgs.Metric != GraphMetric::ANGULAR)
-            EWeights[e] = dfy::EuclideanDistance(M, M.Edges()(e, 0), M.Edges()(e, 1));
-        else if (i == -1 || j == -1)
-            EWeights[e] = 0.0;
-        else
-            EWeights[e] = 1.0 / dfy::DualCurvatureDistance(M, i, j);
-    }
-    Seg.CutToDisk(CutEdges, EWeights);
-    std::sort(CutEdges.begin(), CutEdges.end());
-    auto CEDel = std::unique(CutEdges.begin(), CutEdges.end());
-    CutEdges.erase(CEDel, CutEdges.end());
-    if (CLIArgs.Verbosity > 1)
-    {
-        std::cout << "Cut computed in ";
-        std::cout << StopTimer() << " seconds.";
-        std::cout << std::endl;
-    }
-
-    // Realize cut and unwrap
-    StartTimer();
-    dfy::Mesh CM = M.CutEdges(CutEdges);
-    if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::TUTTE)
-    {
-        dfy::TutteEmbedding Emb(CM);
-        Emb.MapBoundary(dfy::BoundaryMap::SQUARE);
-        Emb.Compute();
-        UV = Emb.UV();
-    }
-    else if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::HARMONIC)
-    {
-        dfy::HarmonicEmbedding Emb(CM);
-        Emb.MapBoundary(dfy::BoundaryMap::SQUARE);
-        Emb.Compute();
-        UV = Emb.UV();
-    }
-    else if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::CONFORMAL)
-    {
-        dfy::ConformalEmbedding Emb(CM);
-        Emb.Compute();
-        UV = Emb.UV();
-    }
-    else if (CLIArgs.Algorithm == dfy::UVMapAlgorithm::ARAP)
-    {
-        dfy::ARAPEmbedding Emb(CM);
-        Emb.Compute();
-        UV = Emb.UV();
-    }
-    TUV = CM.Triangles();
-    if (CLIArgs.Verbosity > 1)
-    {
-        std::cout << "Computed embedding in ";
-        std::cout << StopTimer() << " seconds.";
-        std::cout << std::endl;
-    }
-}
-
 
 int main(int argc, const char* const argv[])
 {
     ParseArgs(argc, argv);
 
-    // Load mesh
-    StartTimer();
+    polyscope::init();
+
     dfy::ManifoldMesh M(CLIArgs.InputFile);
-    M.FixFaceOrientation();
-    if (CLIArgs.Verbosity > 1)
+
+    std::string MeshName = std::filesystem::path(CLIArgs.InputFile).filename().replace_extension("").string();
+    auto psMesh = polyscope::registerSurfaceMesh(MeshName, M.Vertices(), M.Triangles());
+
+    int NSamples = 2 * (M.Genus() + 1);
+    dfy::Graph G = dfy::DualMeshToGraph(M, dfy::DualAngularDistance);
+    dfy::Sampler Smpl(G);
+    Smpl.AddSamples(NSamples - 1);
+    dfy::Segmentation Seg(M, G, Smpl.GetPartitions());
+    std::vector<Eigen::Vector3d> VoronoiColors;
+    VoronoiColors.resize(M.NumTriangles());
+    for (int i = 0; i < Seg.NumRegions(); ++i)
     {
-        std::cout << "Loaded mesh " << CLIArgs.InputFile;
-        std::cout << " in " << StopTimer() << " seconds.";
-        std::cout << std::endl;
+        std::vector<int> FID;
+        Seg.GetRegion(i).Faces(FID);
+        Eigen::Vector3d CurCol{ polyscope::randomUnit(), polyscope::randomUnit(), polyscope::randomUnit() };
+        for (int f : FID)
+            VoronoiColors[f] = CurCol;
     }
-
-    // Start global timer
-    StartGlobalTimer();
-
-    Eigen::MatrixXd UV;
-    Eigen::MatrixXi TUV;
-    if (M.IsDisk())
-        Parametrize(M, UV, TUV);
-    else
-        CutAndParametrize(M, UV, TUV);
-
-    double Runtime = StopGlobalTimer();
-
-    StartTimer();
-    dfy::ExportMesh(CLIArgs.OutputFile, M, UV, TUV, CLIArgs.SmoothNormals);
-    if (CLIArgs.Verbosity > 1)
+    Seg.MakeAllDisks(NSamples);
+    std::vector<Eigen::Vector3d> DisksColor;
+    DisksColor.resize(M.NumTriangles());
+    for (int i = 0; i < Seg.NumRegions(); ++i)
     {
-        std::cout << "Mesh exported to " << CLIArgs.OutputFile << " in ";
-        std::cout << StopTimer() << " seconds.";
-        std::cout << std::endl;
+        std::vector<int> FID;
+        Seg.GetRegion(i).Faces(FID);
+        Eigen::Vector3d CurCol{ polyscope::randomUnit(), polyscope::randomUnit(), polyscope::randomUnit() };
+        for (int f : FID)
+            DisksColor[f] = CurCol;
     }
+    std::vector<Eigen::Vector3d> MergeColor;
+    MergeColor = DisksColor;
+    float Threshold = 1e-2;
 
-    
-    if (CLIArgs.Verbosity > 0)
-    {
-        std::cout << "Total runtime: ";
-        std::cout << Runtime << " seconds.";
-        std::cout << std::endl;
-    }
+    // MergeColor.resize(M.NumTriangles());
+    // for (int i = 0; i < Seg.NumRegions(); ++i)
+    // {
+    //     std::vector<int> FID;
+    //     Seg.GetRegion(i).Faces(FID);
+    //     Eigen::Vector3d CurCol{ polyscope::randomUnit(), polyscope::randomUnit(), polyscope::randomUnit() };
+    //     for (int f : FID)
+    //         MergeColor[f] = CurCol;
+    // }
+
+    psMesh->addFaceColorQuantity("Voronoi", VoronoiColors);
+    psMesh->addFaceColorQuantity("Disks", DisksColor);
+    auto MrgQnt = psMesh->addFaceColorQuantity("Merge", MergeColor);
+
+    auto MergeCbk = [&]() {
+        ImGui::InputFloat("Threshold", &Threshold, 0.0f, 0.0f, "%.3e");
+        if (!ImGui::Button("Merge regions"))
+            return;
+        
+        dfy::Segmentation SegMerge(Seg);
+
+        SegMerge.MergeRegions(dfy::MaxAvgCurvature, Threshold);
+        MergeColor.resize(M.NumTriangles());
+        for (int i = 0; i < SegMerge.NumRegions(); ++i)
+        {
+            std::vector<int> FID;
+            SegMerge.GetRegion(i).Faces(FID);
+            Eigen::Vector3d CurCol{ polyscope::randomUnit(), polyscope::randomUnit(), polyscope::randomUnit() };
+            for (int f : FID)
+                MergeColor[f] = CurCol;
+        }
+
+        MrgQnt->updateData(MergeColor);
+    };
+
+    polyscope::state::userCallback = MergeCbk;
+    polyscope::show();
 
     return EXIT_SUCCESS;
 }
@@ -260,9 +149,11 @@ void ParseArgs(int argc, const char *const argv[])
 {
     CLIArgs.InputFile = "../samples/bunny.obj";
     CLIArgs.Algorithm = dfy::UVMapAlgorithm::TUTTE;
-    CLIArgs.Metric = GraphMetric::ANGULAR;
+    CLIArgs.Metric = GraphMetric::GEODESIC;
     CLIArgs.StartSamples = 5;
     CLIArgs.SubSamples = 5;
+    CLIArgs.Threshold = 0.76;
+    CLIArgs.Packing = false;
     CLIArgs.SmoothNormals = false;
     CLIArgs.Verbosity = 1;
 
@@ -275,6 +166,12 @@ void ParseArgs(int argc, const char *const argv[])
         }
 
         std::string Argvi = argv[i];
+        // UV packing
+        if (Argvi == "-p" || Argvi == "--packing")
+        {
+            CLIArgs.Packing = true;
+            continue;
+        }
         // Smooth normals in output
         if (Argvi == "-s" || Argvi == "--smooth")
         {
@@ -308,6 +205,12 @@ void ParseArgs(int argc, const char *const argv[])
             CLIArgs.SubSamples = std::stoi(argv[++i]);
             continue;
         }
+        // Merging threshold
+        if (Argvi == "-t" || Argvi == "--threshold")
+        {
+            CLIArgs.Threshold = std::stod(argv[++i]);
+            continue;
+        }
         // Unwrapping algorithm
         if (Argvi == "-a" || Argvi == "--algorithm")
         {
@@ -328,8 +231,8 @@ void ParseArgs(int argc, const char *const argv[])
                 std::cerr << "Specified unwrapping algorithm \"";
                 std::cerr << Algo << "\" is not a valid option.";
                 std::cerr << std::endl;
-                Usage(argv[0]);
                 exit(EXIT_FAILURE);
+                Usage(argv[0]);
             }
         }
         // Graph metric
@@ -394,17 +297,18 @@ void ParseArgs(int argc, const char *const argv[])
 void Usage(const std::string &argv0)
 {
     std::cout << "Usage:" << std::endl;
-    std::cout << "  " << argv0 << " input_mesh [-n num_samples] [-d disk_samples] [-m metric] [-o output_mesh] [-a algorithm] [-v verbosity] [-s]" << std::endl;
-    std::cout << "  " << argv0 << " input_mesh [--num-samples num_samples] [--disk-samples disk_samples] [--metric metric] [--output output_mesh] [--algorithm algorithm] [--verbosity verbosity] [--smooth]" << std::endl;
+    std::cout << "  " << argv0 << " input_mesh [-n num_samples] [-d disk_samples] [-t threshold] [-o output_mesh] [-a algorithm] [-v verbosity] [-p] [-s]" << std::endl;
+    std::cout << "  " << argv0 << " input_mesh [--num-samples num_samples] [--disk-samples disk_samples] [--threshold threshold] [--output output_mesh] [--algorithm algorithm] [--verbosity verbosity] [--packing] [--smooth]" << std::endl;
     std::cout << "  " << argv0 << " -h" << std::endl;
     std::cout << "  " << argv0 << " --help" << std::endl;
     std::cout << std::endl;
     std::cout << "    input_mesh is the path to a triangulated mesh." << std::endl;
     std::cout << "    num_samples is the number of samples for the initial Voronoi partitioning. Default is 5." << std::endl;
     std::cout << "    disk_samples is the number of sub-samples that must subdivide non topological disks. Default is 5." << std::endl;
-    std::cout << "    metric is the function used to weight edges. Acceptable values are \'euclidean\', \'angular\', \'geodesic\'. Default is \'angular\'." << std::endl;
-    std::cout << "    algorithm is the UV unwrapping algorithm for each region. Acceptable values are \'tutte\', \'harmonic\', \'conformal\', \'arap\'. Default is \'tutte\'." << std::endl;
+    std::cout << "    threshold is the threshold parameter that determines if two regions can be merged. Default is 0.76" << std::endl;
+    std::cout << "    algorithm is the UV unwrapping algorithm for each region. Acceptable values are \'tutte\', \'harmonic\', \'conformal\', \'arap\'. Default is \'harmonic\'." << std::endl;
     std::cout << "    verbosity is the verbosity level of the output, ranging from 0 (no output) to 2 (runtime of each step). Default is 1 (total runtime)." << std::endl;
+    std::cout << "    -p|--packing option forces each UV island to not overlap with the others. By default, island are all rescaled to [0, 1]^2." << std::endl;
     std::cout << "    -s|--smooth option outputs a mesh with smoothed normals. By default, output mesh has constant normals over triangles." << std::endl;
     std::cout << "    -h|--help option prints this help message." << std::endl;
 }

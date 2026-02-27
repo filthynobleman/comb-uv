@@ -33,6 +33,15 @@ private:
     // Triangle-to-triangle adjacency
     Eigen::MatrixXi m_T2T;
 
+    // Gaussian curvature
+    Eigen::VectorXd m_GC;
+
+    // Mean curvature
+    Eigen::VectorXd m_MC;
+
+    // Vertex dual area
+    Eigen::VectorXd m_VA;
+
     // Inizialization procedure
     void InitManifoldMesh();
 
@@ -54,6 +63,9 @@ public:
     const Eigen::MatrixXi& EdgeTriAdj() const;
     const Eigen::MatrixXi& TriEdgeAdj() const;
     const Eigen::MatrixXi& TriTriAdj() const;
+    const Eigen::VectorXd& GaussianCurvature() const;
+    const Eigen::VectorXd& MeanCurvature() const;
+    const Eigen::VectorXd& VertexDualArea() const;
 
     dfy::Mesh CutEdges(const std::vector<int>& EdgeVec) const;
     dfy::Mesh CutEdges(const std::vector<bool>& EdgeFlags) const;
