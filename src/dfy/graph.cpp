@@ -14,6 +14,7 @@
 
 #include <iostream>
 
+dfy::Graph::Graph() { } 
 
 dfy::Graph::Graph(const std::vector<std::pair<int, int>>& Edges,
                   const std::vector<double>& Weights)
@@ -486,19 +487,23 @@ std::vector<std::pair<int, int>> dfy::Graph::MaxSpanTree() const
 
 dfy::Graph dfy::Graph::SubGraph(const std::vector<int> &Indices) const
 {
-    std::map<int, int> IdxInv;
+    // std::map<int, int> IdxInv;
+    // for (int i = 0; i < Indices.size(); ++i)
+    //     IdxInv.emplace(Indices[i], i);
+    std::vector<int> IdxInv;
+    IdxInv.resize(NumNodes(), -1);
     for (int i = 0; i < Indices.size(); ++i)
-        IdxInv.emplace(Indices[i], i);
-    
-    std::vector<std::pair<int, int>> Edges;
-    std::vector<double> Weights;
-    Edges.reserve(NumEdges());
-    Weights.reserve(NumEdges());
+        IdxInv[Indices[i]] = i;
 
-    for (auto it : IdxInv)
+    dfy::Graph SG;
+    SG.m_Idxs.reserve(Indices.size() + 1);
+    SG.m_Adjs.reserve(Indices.size() * 6);
+
+    for (int i = 0; i < Indices.size(); ++i)
     {
-        int iOld = it.first;
-        int iNew = it.second;
+        SG.m_Idxs.push_back(SG.m_Adjs.size());
+        int iOld = Indices[i];
+        int iNew = i;
         int nadj = NumAdjacents(iOld);
         // To ensure we don't fuck up disconnected components
         bool Isolated = true;
@@ -507,21 +512,49 @@ dfy::Graph dfy::Graph::SubGraph(const std::vector<int> &Indices) const
             int jOld;
             double w;
             std::tie(jOld, w) = GetAdjacent(iOld, jj);
-            if (IdxInv.find(jOld) == IdxInv.end())
+            if (IdxInv[jOld] < 0)
                 continue;
             Isolated = false;
             int jNew = IdxInv[jOld];
-            Edges.emplace_back(iNew, jNew);
-            Weights.emplace_back(w);
-        }
-        if (Isolated)
-        {
-            Edges.emplace_back(iNew, iNew);
-            Weights.emplace_back(std::numeric_limits<double>::infinity());
+            SG.m_Adjs.emplace_back(jNew, w);
         }
     }
+    SG.m_Idxs.push_back(SG.m_Adjs.size());
 
-    return dfy::Graph(Edges, Weights);
+    return SG;
+    
+    // std::vector<std::pair<int, int>> Edges;
+    // std::vector<double> Weights;
+    // Edges.reserve(NumEdges());
+    // Weights.reserve(NumEdges());
+
+    // for (auto it : IdxInv)
+    // {
+    //     int iOld = it.first;
+    //     int iNew = it.second;
+    //     int nadj = NumAdjacents(iOld);
+    //     // To ensure we don't fuck up disconnected components
+    //     bool Isolated = true;
+    //     for (int jj = 0; jj < nadj; ++jj)
+    //     {
+    //         int jOld;
+    //         double w;
+    //         std::tie(jOld, w) = GetAdjacent(iOld, jj);
+    //         if (IdxInv.find(jOld) == IdxInv.end())
+    //             continue;
+    //         Isolated = false;
+    //         int jNew = IdxInv[jOld];
+    //         Edges.emplace_back(iNew, jNew);
+    //         Weights.emplace_back(w);
+    //     }
+    //     if (Isolated)
+    //     {
+    //         Edges.emplace_back(iNew, iNew);
+    //         Weights.emplace_back(std::numeric_limits<double>::infinity());
+    //     }
+    // }
+
+    // return dfy::Graph(Edges, Weights);
 }
 
 

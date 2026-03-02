@@ -12,6 +12,7 @@
 #include <dfy/manifoldmesh.hpp>
 
 #include <set>
+#include <unordered_set>
 
 namespace dfy
 {
@@ -19,9 +20,9 @@ namespace dfy
 class Region
 {
 private:
-    std::set<int> m_Verts;
-    std::set<int> m_Edges;
-    std::set<int> m_Faces;
+    std::unordered_set<int> m_Verts;
+    std::unordered_set<int> m_Edges;
+    std::unordered_set<int> m_Faces;
 
 public:
     Region();
@@ -44,18 +45,21 @@ public:
     bool IsDisk() const;
     bool IsEmpty() const;
 
+    void Reserve(int nV, int nE, int nT);
+    void Clear();
+
     void AddVertex(int VertID);
     void AddEdge(int EdgeID);
     void AddFace(int FaceID);
 
-    friend dfy::Region Union(const dfy::Region&, const dfy::Region);
-    friend dfy::Region Intersection(const dfy::Region&, const dfy::Region);
-    friend dfy::Region LineIntersection(const dfy::Region&, const dfy::Region);
+    friend dfy::Region Union(const dfy::Region&, const dfy::Region&);
+    friend dfy::Region Intersection(const dfy::Region&, const dfy::Region&);
+    friend dfy::Region LineIntersection(const dfy::Region&, const dfy::Region&);
 };
 
-dfy::Region Union(const dfy::Region& R1, const dfy::Region R2);
-dfy::Region Intersection(const dfy::Region& R1, const dfy::Region R2);
-dfy::Region LineIntersection(const dfy::Region& R1, const dfy::Region R2);
+dfy::Region Union(const dfy::Region& R1, const dfy::Region& R2);
+dfy::Region Intersection(const dfy::Region& R1, const dfy::Region& R2);
+dfy::Region LineIntersection(const dfy::Region& R1, const dfy::Region& R2);
 
 
 } // namespace dfy

@@ -78,6 +78,10 @@ void dfy::Segmentation::MakeAllDisks(int SubSamples)
         Changes = false;
         Eigen::VectorXi NewParts = m_Partitions;
         int NewNumRegs = NumRegions();
+        // int ExpNewRegs = 0;
+        // for (int rid = 0; rid < NumRegions(); ++rid)
+        //     ExpNewRegs += GetRegion(rid).IsDisk() ? 0 : SubSamples;
+        // m_Regions.reserve(NewNumRegs + ExpNewRegs);
         for (int rid = 0; rid < NumRegions(); ++rid)
         {
             const auto& r = GetRegion(rid);
@@ -94,6 +98,7 @@ void dfy::Segmentation::MakeAllDisks(int SubSamples)
             for (int cc : SGCC)
                 NCC = std::max(cc + 1, NCC);
             // If we have multiple connected components, just separate
+            int OldNumRegs = NewNumRegs;
             if (NCC > 1)
             {
                 for (int i = 0; i < RFaces.size(); ++i)
@@ -103,24 +108,49 @@ void dfy::Segmentation::MakeAllDisks(int SubSamples)
                     NewParts[RFaces[i]] = NewNumRegs + SGCC[i] - 1;
                 }
                 NewNumRegs += NCC - 1;
-                continue;
             }
             // Otherwise, break by sampling
-            dfy::Sampler Smpl(SG);
-            while (Smpl.NumSamples() < std::min(SubSamples, SG.NumNodes()))
-                Smpl.AddSample();
+            else
+            {
+                dfy::Sampler Smpl(SG);
+                while (Smpl.NumSamples() < std::min(SubSamples, SG.NumNodes()))
+                    Smpl.AddSample();
+                for (int i = 0; i < RFaces.size(); ++i)
+                {
+                    if (Smpl.GetPartition(i) == 0)
+                        continue;
+                    NewParts[RFaces[i]] = NewNumRegs + Smpl.GetPartition(i) - 1;
+                }
+                NewNumRegs += Smpl.NumSamples() - 1;
+            }
+            // Update regions data structure
+            m_Regions[rid].Clear();
+            // Preallocation and tricky memory management saves about 30-40% of computation
+            int rV = 2 * r.NumVertices() / SubSamples;
+            int rE = 2 * r.NumEdges() / SubSamples;
+            int rT = 2 * r.NumFaces() / SubSamples;
+            m_Regions[rid].Reserve(rV, rE, rT);
+            if (m_Regions.capacity() < NewNumRegs)
+                m_Regions.reserve(NewNumRegs + 10 * SubSamples);
+            m_Regions.resize(NewNumRegs);
+            for (int i = OldNumRegs; i < NewNumRegs; ++i)
+                m_Regions[i].Reserve(rV, rE, rT);
             for (int i = 0; i < RFaces.size(); ++i)
             {
-                if (Smpl.GetPartition(i) == 0)
-                    continue;
-                NewParts[RFaces[i]] = NewNumRegs + Smpl.GetPartition(i) - 1;
+                int Part = NewParts[RFaces[i]];
+                m_Regions[Part].AddFace(RFaces[i]);
+                for (int j = 0; j < 3; ++j)
+                {
+                    // if (m_Mesh.TriEdgeAdj()(RFaces[i], j) >= 0)
+                    m_Regions[Part].AddEdge(m_Mesh.TriEdgeAdj()(RFaces[i], j));
+                    m_Regions[Part].AddVertex(m_Mesh.Triangles()(RFaces[i], j));
+                }
             }
-            NewNumRegs += Smpl.NumSamples() - 1;
         }
 
 
-        if (Changes)
-            ComputeRegions(NewParts);
+        // if (Changes)
+        //     ComputeRegions(NewParts);
     }
 }
 

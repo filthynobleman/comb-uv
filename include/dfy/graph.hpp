@@ -37,6 +37,7 @@ class Graph
 private:
     std::vector<int> m_Idxs;
     std::vector<dfy::WEdge> m_Adjs;
+    Graph();
 
 public:
     Graph(const std::vector<std::pair<int, int>>& Edges,
