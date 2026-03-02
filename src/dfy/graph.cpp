@@ -718,8 +718,8 @@ double dfy::GeodesicDistance(const dfy::ManifoldMesh &M, int i, int j)
     //  \  |  /
     //   i2|j3
     double theta = M.FaceAngles()(i, i2) + M.FaceAngles()(j, j3);
-    double a = M.EdgeLengths()(i, i3);
-    double b = M.EdgeLengths()(j, j2);
+    double a = M.EdgeLengths()[M.TriEdgeAdj()(i, i3)];
+    double b = M.EdgeLengths()[M.TriEdgeAdj()(j, j2)];
     // bi = (i1 + i2 + i3) / 3;
     // bj = (j1 + j2 + j3) / 3 = (j1 + i3 + i2) / 3
     // bi - bj = (i1 - j1) / 3

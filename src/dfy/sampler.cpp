@@ -19,6 +19,7 @@ dfy::Sampler::Sampler(const dfy::Graph& G, int Seed) : m_G(G)
     m_Samples.emplace_back(Dist(Eng));
     m_Partitions.setConstant(G.NumNodes(), 0);
     G.DijkstraDistance(m_Samples[0], m_Distances);
+    m_Distances[m_Samples[0]] = -1;
 
     m_HDists = new dfy::MinHeap(m_Distances.data(), G.NumNodes(), true);
 }

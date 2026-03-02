@@ -78,9 +78,11 @@ void dfy::Segmentation::MakeAllDisks(int SubSamples)
         Changes = false;
         Eigen::VectorXi NewParts = m_Partitions;
         int NewNumRegs = NumRegions();
+        int OldRegions = NumRegions();
         // int ExpNewRegs = 0;
         // for (int rid = 0; rid < NumRegions(); ++rid)
-        //     ExpNewRegs += GetRegion(rid).IsDisk() ? 0 : SubSamples;
+        //     std::cout << rid << ": " << GetRegion(rid).NumFaces() << std::endl;
+        // std::cout << std::endl;
         // m_Regions.reserve(NewNumRegs + ExpNewRegs);
         for (int rid = 0; rid < NumRegions(); ++rid)
         {
@@ -104,8 +106,9 @@ void dfy::Segmentation::MakeAllDisks(int SubSamples)
                 for (int i = 0; i < RFaces.size(); ++i)
                 {
                     if (SGCC[i] == 0)
-                        continue;
-                    NewParts[RFaces[i]] = NewNumRegs + SGCC[i] - 1;
+                        NewParts[RFaces[i]] = rid;
+                    else
+                        NewParts[RFaces[i]] = NewNumRegs + SGCC[i] - 1;
                 }
                 NewNumRegs += NCC - 1;
             }
@@ -118,8 +121,9 @@ void dfy::Segmentation::MakeAllDisks(int SubSamples)
                 for (int i = 0; i < RFaces.size(); ++i)
                 {
                     if (Smpl.GetPartition(i) == 0)
-                        continue;
-                    NewParts[RFaces[i]] = NewNumRegs + Smpl.GetPartition(i) - 1;
+                        NewParts[RFaces[i]] = rid;
+                    else
+                        NewParts[RFaces[i]] = NewNumRegs + Smpl.GetPartition(i) - 1;
                 }
                 NewNumRegs += Smpl.NumSamples() - 1;
             }
