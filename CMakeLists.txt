@@ -58,6 +58,11 @@ target_link_libraries(Diskify DFY)
 set_target_properties(Diskify PROPERTIES CXX_STANDARD 17)
 
 
+add_executable(GraphicalAbstract "${CMAKE_SOURCE_DIR}/src/apps/graphicalabstract.cpp")
+target_link_libraries(GraphicalAbstract DFY)
+set_target_properties(GraphicalAbstract PROPERTIES CXX_STANDARD 17)
+
+
 add_executable(VoronoiRefinementFigure "${CMAKE_SOURCE_DIR}/src/apps/vororefine.cpp")
 target_link_libraries(VoronoiRefinementFigure DFY)
 set_target_properties(VoronoiRefinementFigure PROPERTIES CXX_STANDARD 17)

@@ -40,6 +40,7 @@ build
 |   |
 |   +-- Diskify[.exe]
 |   +-- UVPatches[.exe]
+|   +-- GraphicalAbstract[.exe]
 |   +-- VoronoiRefinementFigure[.exe]
 |
 +-- (CMake build data)
@@ -49,6 +50,7 @@ build
 The building process produces three executables.
 - `Diskify`: the application that computes the cut to parametrize the surface into a topological disk.
 - `UVPatches`: the application that computes the segmentation of the surface into topological disks.
+- `GraphicalAbstract`: the application that produces the data used for the graphical abstract of the paper.
 - `VoronoiRefinementFigure`: the application that produces the data used for the figure in the paper that discusses the refinement steps from the basic Voronoi decomposition to the merged regions.
 
 Notice that, for compatibility with future extensions, the current implementation of the algorithm uses a `std::priority_queue` for computing spanning tree, resulting in the computation of the *maximum* spanning tree, rather than the *minimum* spanning tree, as discussed in the paper. This means that the metrics provided in the implementation are inverted with respect to those discussed in the paper. However, the results are unchanged.
@@ -115,9 +117,10 @@ The supported metrics (`-m` option) are the following:
 - `angular`: edges in the dual graph are weighted by the *dihedral angle* between the adjacent triangles. Merging score tries to minimize the *absolute value of mean and Gaussian curvatures*.
 
 
-### VoronoiRefinementFigure
-The application can be executed with the following syntax
+### GraphicalAbstract and VoronoiRefinementFigure
+The applications can be executed with the following syntax
 ```sh
+./bin/GraphicalAbstract
 ./bin/VoronoiRefinementFigure
 ```
-to reproduce the data used for the paper's figure discussing the step of the refinement from the basic Voronoi decomposition to the merged regions.
+to reproduce the data used for the graphical abstract and the paper's figure discussing the step of the refinement from the basic Voronoi decomposition to the merged regions.
