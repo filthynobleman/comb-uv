@@ -152,6 +152,8 @@ void dfy::Segmentation::MakeAllDisks(int SubSamples)
             }
         }
 
+        m_Partitions = NewParts;
+
 
         // if (Changes)
         //     ComputeRegions(NewParts);

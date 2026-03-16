@@ -12,8 +12,6 @@
 #include <dfy/utils.hpp>
 #include <dfy/graph.hpp>
 #include <dfy/mesh.hpp>
-#include <dfy/quadmesh.hpp>
-#include <dfy/gimage.hpp>
 
 #include <ostream>
 #include <fstream>
@@ -31,18 +29,12 @@ bool ExportMesh(const std::string& Filename,
                 const Eigen::MatrixXi& TUV,
                 bool Smooth = true);
 
-bool ExportQuadMesh(const std::string& Filename,
-                    const dfy::QuadMesh& M);
-
 bool ExportPointCloud(const std::string& Filename,
                       const Eigen::MatrixXd& Points);
 
 bool ExportGraph(const std::string& Filename,
                  const dfy::Graph& G,
                  const Eigen::MatrixXd& V);
-
-bool ExportGImage(const std::string& Filename,
-                  const dfy::GImage& Img);
 
 bool ExportCut(const std::string& Filename,
                const dfy::ManifoldMesh& M,

@@ -102,7 +102,7 @@ int main(int argc, const char* const argv[])
     // Voronoi decomposition
     StartTimer();
     dfy::Sampler Smpl(G);
-    CLIArgs.StartSamples = std::max(CLIArgs.StartSamples, 4 * M.Genus());
+    CLIArgs.StartSamples = std::max(CLIArgs.StartSamples, 2 * (M.Genus() + 1));
     Smpl.AddSamples(std::min(CLIArgs.StartSamples, G.NumNodes()) - 1);
     if (CLIArgs.Verbosity > 1)
     {

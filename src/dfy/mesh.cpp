@@ -243,3 +243,46 @@ dfy::Mesh dfy::Mesh::SubMesh(const Eigen::VectorXi &Indices,
 {
     return SubMesh(Indices.data(), Indices.rows(), AccType);
 }
+
+dfy::Mesh dfy::Mesh::Separate(const Eigen::VectorXi &Partitioning) const
+{
+    std::map<int, int> PartsID;
+    std::vector<std::vector<int>> PartRegions;
+    std::vector<int> PartsVec;
+    for (int i = 0; i < Partitioning.rows(); ++i)
+    {
+        int p = Partitioning[i];
+        if (PartsID.find(p) == PartsID.end())
+        {
+            PartsID.emplace(p, (int)PartsID.size());
+            PartsVec.emplace_back(p);
+            PartRegions.emplace_back();
+        }
+        PartRegions[PartsID[p]].emplace_back(i);
+    }
+
+    std::vector<dfy::Mesh> SubMeshes;
+    SubMeshes.reserve(PartsID.size());
+    int TotVerts = 0;
+    int TotTris = 0;
+    for (int p : PartsVec)
+    {
+        SubMeshes.emplace_back(SubMesh(PartRegions[PartsID[p]], dfy::SubMeshAccessType::BY_TRIANGLES));
+        TotVerts += SubMeshes.back().NumVertices();
+        TotTris += SubMeshes.back().NumTriangles();
+    }
+
+    Eigen::MatrixXd V(TotVerts, 3);
+    Eigen::MatrixXi T(TotTris, 3);
+    int CurV = 0;
+    int CurT = 0;
+    for (const auto& sm : SubMeshes)
+    {
+        V.block(CurV, 0, sm.NumVertices(), 3) = sm.Vertices();
+        T.block(CurT, 0, sm.NumTriangles(), 3) = sm.Triangles().array() + CurV;
+        CurV += sm.NumVertices();
+        CurT += sm.NumTriangles();
+    }
+
+    return dfy::Mesh(V, T);
+}

@@ -81,6 +81,8 @@ public:
 
     virtual void FlipTriangle(int i);
 
+    dfy::Mesh Separate(const Eigen::VectorXi& Partitioning) const;
+
 
     dfy::Mesh SubMesh(const std::vector<int>& Indices,
                       dfy::SubMeshAccessType AccType,

@@ -121,6 +121,8 @@ void CutAndParametrize(const dfy::ManifoldMesh& M,
     // Voronoi decomposition
     StartTimer();
     dfy::Sampler Smpl(G);
+    if (CLIArgs.StartSamples <= 0)
+        CLIArgs.StartSamples = 2 * (M.Genus() + 1);
     Smpl.AddSamples(std::min(CLIArgs.StartSamples, G.NumNodes()) - 1);
     if (CLIArgs.Verbosity > 1)
     {
@@ -261,7 +263,7 @@ void ParseArgs(int argc, const char *const argv[])
     CLIArgs.InputFile = "../samples/bunny.obj";
     CLIArgs.Algorithm = dfy::UVMapAlgorithm::TUTTE;
     CLIArgs.Metric = GraphMetric::ANGULAR;
-    CLIArgs.StartSamples = 5;
+    CLIArgs.StartSamples = -1;
     CLIArgs.SubSamples = 5;
     CLIArgs.SmoothNormals = false;
     CLIArgs.Verbosity = 1;

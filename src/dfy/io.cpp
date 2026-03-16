@@ -43,35 +43,6 @@ bool dfy::ExportMesh(const std::string &Filename,
     }
 }
 
-bool dfy::ExportQuadMesh(const std::string &Filename, 
-                         const dfy::QuadMesh &M)
-{
-    std::ofstream Stream;
-    Stream.open(Filename, std::ios::out);
-    if (!Stream.is_open())
-        return false;
-
-    Stream << "o " << Filename.substr(0, Filename.rfind('.')) << '\n';
-
-    for (int i = 0; i < M.NumVertices(); ++i)
-    {
-        Stream << "v " << M.Vertices()(i, 0) << ' ' 
-                       << M.Vertices()(i, 1) << ' '
-                       << M.Vertices()(i, 2) << '\n';
-    }
-
-    for (int i = 0; i < M.NumQuads(); ++i)
-    {
-        Stream << "f " << (M.Quads()(i, 0) + 1) << ' ' 
-                       << (M.Quads()(i, 1) + 1) << ' ' 
-                       << (M.Quads()(i, 2) + 1) << ' '
-                       << (M.Quads()(i, 3) + 1) << '\n';
-    }
-
-    Stream.close();
-    return true;
-}
-
 bool dfy::ExportPointCloud(const std::string &Filename, 
                            const Eigen::MatrixXd &Points)
 {
@@ -125,33 +96,6 @@ bool dfy::ExportGraph(const std::string &Filename,
 
     Stream.close();
     return true;
-}
-
-bool dfy::ExportGImage(const std::string &Filename, 
-                       const dfy::GImage &Img)
-{
-    size_t Stride = Img.GetWidth() * 3 * sizeof(unsigned char);
-    size_t BufSize = Stride * Img.GetHeight();
-    unsigned char* imgdata = (unsigned char*)std::malloc(BufSize);
-    if (imgdata == nullptr)
-        return false;
-    
-    for (int j = 0; j < Img.GetHeight(); ++j)
-    {
-        for (int i = 0; i < Img.GetWidth(); ++i)
-        {
-            size_t PIdx = (j * Img.GetWidth() + i) * 3;
-            Img.GetPixel(i, j, imgdata[PIdx], imgdata[PIdx + 1], imgdata[PIdx + 2]);
-        }
-    }
-
-    stbi_flip_vertically_on_write(true);
-    int Status = stbi_write_png(Filename.c_str(),
-                                Img.GetWidth(), Img.GetHeight(), 3,
-                                imgdata, Stride);
-
-    delete imgdata;
-    return Status != 0;
 }
 
 bool dfy::ExportCut(const std::string &Filename, 
